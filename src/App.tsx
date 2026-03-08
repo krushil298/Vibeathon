@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Users, Settings, Bell, Search, Activity, Zap } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { supabase } from './supabase';
 
 // Helper for tailwind class merging
 export function cn(...inputs: ClassValue[]) {
@@ -75,6 +76,16 @@ function Header() {
 }
 
 function Dashboard() {
+  const [recentUsers, setRecentUsers] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchUsers() {
+      const { data } = await supabase.from('demo_users').select('*').order('created_at', { ascending: false }).limit(5);
+      if (data) setRecentUsers(data);
+    }
+    fetchUsers();
+  }, []);
+
   const stats = [
     { label: "Total Users", value: "24,593", change: "+12%" },
     { label: "Active Sessions", value: "1,205", change: "+4%" },
@@ -129,14 +140,16 @@ function Dashboard() {
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 transition-all hover:border-zinc-700">
           <h3 className="font-semibold text-white mb-4">Recent Activity</h3>
           <div className="space-y-4">
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="flex items-center gap-3 group cursor-pointer p-2 -mx-2 rounded-lg hover:bg-zinc-800/50 transition-colors">
+            {recentUsers.length === 0 ? (
+              <p className="text-zinc-500 text-sm">Loading users from DB...</p>
+            ) : recentUsers.map((user) => (
+              <div key={user.id} className="flex items-center gap-3 group cursor-pointer p-2 -mx-2 rounded-lg hover:bg-zinc-800/50 transition-colors">
                 <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-medium border border-zinc-700 group-hover:bg-indigo-500/20 group-hover:text-indigo-400 group-hover:border-indigo-500/50 transition-colors">
-                  U{i}
+                  {user.name.charAt(0)}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white group-hover:text-indigo-400 transition-colors">User {i} signed up</p>
-                  <p className="text-xs text-zinc-500">Just now</p>
+                  <p className="text-sm font-medium text-white group-hover:text-indigo-400 transition-colors">{user.name} signed up</p>
+                  <p className="text-xs text-zinc-500">From Postgres Server!</p>
                 </div>
               </div>
             ))}
