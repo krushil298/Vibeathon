@@ -1,194 +1,187 @@
 import React, { useEffect, useState } from 'react';
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Settings, Bell, Search, Activity, Zap } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 import { supabase } from './supabase';
+import { Plus, Trash2, Check, LayoutList, Loader2 } from 'lucide-react';
 
-// Helper for tailwind class merging
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-function Sidebar() {
-  const location = useLocation();
-  const navigation = [
-    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { name: 'Users', href: '/users', icon: Users },
-    { name: 'Analytics', href: '/analytics', icon: Activity },
-    { name: 'Settings', href: '/settings', icon: Settings },
-  ];
-
-  return (
-    <div className="w-64 h-screen border-r border-zinc-800 bg-zinc-950 flex-col hidden md:flex">
-      <div className="h-16 flex items-center px-6 border-b border-zinc-800">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <Zap className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-bold text-xl tracking-tight text-white">Vibeathon</span>
-        </div>
-      </div>
-      <div className="flex-1 py-6 px-4 space-y-1">
-        {navigation.map((item) => {
-          const isActive = location.pathname === item.href;
-          return (
-            <Link
-              key={item.name}
-              to={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-zinc-800 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
-              )}
-            >
-              <item.icon className="w-5 h-5" />
-              {item.name}
-            </Link>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function Header() {
-  return (
-    <header className="h-16 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur flex items-center justify-between px-6 sticky top-0 z-10 transition-all">
-      <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-full px-3 py-1.5 w-64 focus-within:ring-2 focus-within:ring-indigo-500/50 focus-within:border-indigo-500/50 transition-all">
-        <Search className="w-4 h-4 text-zinc-400 mr-2" />
-        <input
-          type="text"
-          placeholder="Search fast..."
-          className="bg-transparent border-none outline-none text-sm text-white w-full placeholder:text-zinc-500"
-        />
-      </div>
-      <div className="flex items-center gap-4">
-        <button className="relative p-2 text-zinc-400 hover:text-white transition-colors">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-500 rounded-full border border-zinc-950"></span>
-        </button>
-        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 border-2 border-zinc-800 cursor-pointer hover:opacity-80 transition-opacity"></div>
-      </div>
-    </header>
-  );
-}
-
-function Dashboard() {
-  const [recentUsers, setRecentUsers] = useState<any[]>([]);
-
-  useEffect(() => {
-    async function fetchUsers() {
-      const { data } = await supabase.from('demo_users').select('*').order('created_at', { ascending: false }).limit(5);
-      if (data) setRecentUsers(data);
-    }
-    fetchUsers();
-  }, []);
-
-  const stats = [
-    { label: "Total Users", value: "24,593", change: "+12%" },
-    { label: "Active Sessions", value: "1,205", change: "+4%" },
-    { label: "Revenue", value: "$42,000", change: "+24%" },
-    { label: "Signups Today", value: "329", change: "-2%" },
-  ];
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h1 className="text-2xl font-bold text-white tracking-tight">Welcome back, Hacker ⚡</h1>
-          <p className="text-zinc-400 text-sm mt-1">Here is what's happening right now.</p>
-        </div>
-        <button className="bg-white text-black font-medium px-4 py-2 rounded-lg shadow-sm hover:bg-zinc-200 transition-all active:scale-95 flex items-center gap-2 group">
-          <Zap className="w-4 h-4 group-hover:text-amber-500 transition-colors" />
-          Ship It
-        </button>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, i) => (
-          <div
-            key={i}
-            className="p-5 rounded-xl border border-zinc-800 bg-zinc-900/50 backdrop-blur flex flex-col transition-all hover:bg-zinc-800/80 hover:border-zinc-700 hover:-translate-y-1 hover:shadow-lg"
-            style={{ animation: `fadeInUp 0.5s ease-out ${i * 0.1}s both` }}
-          >
-            <span className="text-sm font-medium text-zinc-400">{stat.label}</span>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-white tracking-tight">{stat.value}</span>
-              <span className={cn(
-                "text-xs font-semibold px-2 py-0.5 rounded-full",
-                stat.change.startsWith('+') ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
-              )}>
-                {stat.change}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Main Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" style={{ animation: `fadeInUp 0.8s ease-out 0.4s both` }}>
-        <div className="lg:col-span-2 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 flex flex-col transition-all hover:border-zinc-700">
-          <h3 className="font-semibold text-white mb-4">Overview Activity</h3>
-          <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm flex-col gap-3 min-h-[300px] border border-dashed border-zinc-800 rounded-lg bg-zinc-950/50">
-            <Activity className="w-8 h-8 opacity-20" />
-            <p>Drop a Recharts chart component here to instantly win.</p>
-          </div>
-        </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 transition-all hover:border-zinc-700">
-          <h3 className="font-semibold text-white mb-4">Recent Activity</h3>
-          <div className="space-y-4">
-            {recentUsers.length === 0 ? (
-              <p className="text-zinc-500 text-sm">Loading users from DB...</p>
-            ) : recentUsers.map((user) => (
-              <div key={user.id} className="flex items-center gap-3 group cursor-pointer p-2 -mx-2 rounded-lg hover:bg-zinc-800/50 transition-colors">
-                <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-medium border border-zinc-700 group-hover:bg-indigo-500/20 group-hover:text-indigo-400 group-hover:border-indigo-500/50 transition-colors">
-                  {user.name.charAt(0)}
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-white group-hover:text-indigo-400 transition-colors">{user.name} signed up</p>
-                  <p className="text-xs text-zinc-500">From Postgres Server!</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      <style>
-        {`
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        `}
-      </style>
-    </div>
-  );
-}
-
-function Layout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-indigo-500/30">
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header />
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto w-full max-w-7xl mx-auto">
-          {children}
-        </main>
-      </div>
-    </div>
-  );
+interface Todo {
+  id: string;
+  task: string;
+  is_completed: boolean;
 }
 
 export default function App() {
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [newTask, setNewTask] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  // Fetch initial todos
+  useEffect(() => {
+    fetchTodos();
+  }, []);
+
+  async function fetchTodos() {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('todos')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      if (data) setTodos(data);
+    } catch (error) {
+      console.error('Error fetching todos:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function addTodo(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newTask.trim()) return;
+
+    // Optimistic UI Update
+    const tempId = crypto.randomUUID();
+    const newTodo = { id: tempId, task: newTask, is_completed: false };
+    setTodos([newTodo, ...todos]);
+    setNewTask('');
+
+    try {
+      const { error } = await supabase
+        .from('todos')
+        .insert([{ task: newTodo.task }]);
+
+      if (error) throw error;
+      // Re-fetch to get the real UUID from the database
+      fetchTodos();
+    } catch (error) {
+      console.error('Error adding todo:', error);
+      // Revert optimistic update on failure
+      setTodos(todos.filter((t) => t.id !== tempId));
+    }
+  }
+
+  async function toggleTodo(id: string, currentStatus: boolean) {
+    // Optimistic UI Update
+    setTodos(todos.map(t => t.id === id ? { ...t, is_completed: !currentStatus } : t));
+
+    try {
+      const { error } = await supabase
+        .from('todos')
+        .update({ is_completed: !currentStatus })
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error toggling todo:', error);
+      // Revert optimistic update
+      setTodos(todos.map(t => t.id === id ? { ...t, is_completed: currentStatus } : t));
+    }
+  }
+
+  async function deleteTodo(id: string) {
+    // Optimistic UI Update
+    const previousTodos = [...todos];
+    setTodos(todos.filter(t => t.id !== id));
+
+    try {
+      const { error } = await supabase
+        .from('todos')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error deleting todo:', error);
+      // Revert optimistic update
+      setTodos(previousTodos);
+    }
+  }
+
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="*" element={<div className="text-center mt-20 text-zinc-500">Page not implemented yet. Build it fast! 🏎️</div>} />
-      </Routes>
-    </Layout>
+    <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center py-16 px-4 font-sans selection:bg-indigo-500/30">
+
+      {/* Header */}
+      <div className="max-w-xl w-full text-center space-y-4 mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="inline-flex items-center justify-center p-3 bg-indigo-500/10 rounded-2xl mb-2">
+          <LayoutList className="w-8 h-8 text-indigo-400" />
+        </div>
+        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-br from-white to-zinc-500 bg-clip-text text-transparent">
+          Stay Focused.
+        </h1>
+        <p className="text-zinc-400 text-lg">
+          The fastest way to manage your tasks, powered by Supabase.
+        </p>
+      </div>
+
+      {/* Main Container */}
+      <div className="max-w-xl w-full bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 rounded-3xl p-6 md:p-8 shadow-2xl">
+
+        {/* Input Form */}
+        <form onSubmit={addTodo} className="relative flex items-center mb-8 group">
+          <input
+            type="text"
+            value={newTask}
+            onChange={(e) => setNewTask(e.target.value)}
+            placeholder="Add a new task..."
+            className="w-full bg-zinc-950/50 border border-zinc-700 rounded-2xl py-4 pl-6 pr-16 text-zinc-100 placeholder:text-zinc-500 outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all shadow-inner"
+          />
+          <button
+            type="submit"
+            disabled={!newTask.trim()}
+            className="absolute right-2 p-2.5 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 disabled:opacity-30 disabled:hover:bg-indigo-500 transition-all active:scale-95"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
+        </form>
+
+        {/* Todo List */}
+        <div className="space-y-3 min-h-[300px]">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center h-full text-zinc-500 space-y-3 pt-20">
+              <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+              <p>Syncing with Database...</p>
+            </div>
+          ) : todos.length === 0 ? (
+            <div className="text-center text-zinc-500 pt-20">
+              <p>No tasks remaining. You're all caught up! 🎉</p>
+            </div>
+          ) : (
+            todos.map((todo) => (
+              <div
+                key={todo.id}
+                className={`group flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${todo.is_completed
+                    ? "bg-zinc-950/50 border-zinc-800/50 opacity-60"
+                    : "bg-zinc-900 border-zinc-700 hover:border-indigo-500/50 hover:-translate-y-0.5"
+                  }`}
+              >
+                <div className="flex items-center gap-4 cursor-pointer" onClick={() => toggleTodo(todo.id, todo.is_completed)}>
+                  <div
+                    className={`flex items-center justify-center w-6 h-6 rounded-full border-2 transition-colors ${todo.is_completed
+                        ? "bg-indigo-500 border-indigo-500"
+                        : "border-zinc-500 group-hover:border-indigo-400"
+                      }`}
+                  >
+                    {todo.is_completed && <Check className="w-3.5 h-3.5 text-white" />}
+                  </div>
+                  <span
+                    className={`text-base font-medium transition-all ${todo.is_completed ? "line-through text-zinc-500" : "text-zinc-200"
+                      }`}
+                  >
+                    {todo.task}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => deleteTodo(todo.id)}
+                  className="p-2 text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all rounded-lg hover:bg-red-500/10 active:scale-95"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
