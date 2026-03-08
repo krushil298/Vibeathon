@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabase';
-import { Plus, Trash2, Check, LayoutList, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Check, LayoutList, Loader2, Eraser } from 'lucide-react';
 
 interface Todo {
   id: string;
@@ -97,6 +97,25 @@ export default function App() {
     }
   }
 
+  async function clearCompleted() {
+    // Optimistic UI Update
+    const previousTodos = [...todos];
+    setTodos(todos.filter(t => !t.is_completed));
+
+    try {
+      const { error } = await supabase
+        .from('todos')
+        .delete()
+        .eq('is_completed', true);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error clearing completed todos:', error);
+      // Revert optimistic update
+      setTodos(previousTodos);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center py-16 px-4 font-sans selection:bg-indigo-500/30">
 
@@ -150,15 +169,15 @@ export default function App() {
               <div
                 key={todo.id}
                 className={`group flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${todo.is_completed
-                    ? "bg-zinc-950/50 border-zinc-800/50 opacity-60"
-                    : "bg-zinc-900 border-zinc-700 hover:border-indigo-500/50 hover:-translate-y-0.5"
+                  ? "bg-zinc-950/50 border-zinc-800/50 opacity-60"
+                  : "bg-zinc-900 border-zinc-700 hover:border-indigo-500/50 hover:-translate-y-0.5"
                   }`}
               >
                 <div className="flex items-center gap-4 cursor-pointer" onClick={() => toggleTodo(todo.id, todo.is_completed)}>
                   <div
                     className={`flex items-center justify-center w-6 h-6 rounded-full border-2 transition-colors ${todo.is_completed
-                        ? "bg-indigo-500 border-indigo-500"
-                        : "border-zinc-500 group-hover:border-indigo-400"
+                      ? "bg-indigo-500 border-indigo-500"
+                      : "border-zinc-500 group-hover:border-indigo-400"
                       }`}
                   >
                     {todo.is_completed && <Check className="w-3.5 h-3.5 text-white" />}
@@ -181,6 +200,21 @@ export default function App() {
             ))
           )}
         </div>
+
+        {todos.some(t => t.is_completed) && (
+          <div className="mt-6 pt-6 border-t border-zinc-800 flex justify-between items-center animate-in fade-in duration-300">
+            <span className="text-sm text-zinc-500">
+              {todos.filter(t => t.is_completed).length} completed tasks
+            </span>
+            <button
+              onClick={clearCompleted}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-zinc-400 hover:text-red-400 bg-zinc-950/50 hover:bg-red-500/10 rounded-xl transition-all active:scale-95 border border-zinc-800 hover:border-red-500/20"
+            >
+              <Eraser className="w-4 h-4" />
+              Clear Completed
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
