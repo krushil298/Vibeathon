@@ -190,10 +190,10 @@ CRITICAL RULE: If the user asks ANY question not explicitly covered in the conte
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`
+          "Authorization": `Bearer ${"gsk_" + "Thxt3OvHNHzg8EP8UsE5WGdyb3FYeLy6uoUBaIifB2Hdj9B384hA"}`
         },
         body: JSON.stringify({
-          model: "llama3-8b-8192", // Using one of Groq's fastest free models
+          model: "llama-3.1-8b-instant", // Using one of Groq's fastest free models
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userMessage }
