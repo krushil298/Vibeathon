@@ -1,48 +1,43 @@
-# Product Requirements Document (PRD): VibeLink Shortener
+# Product Requirements Document (PRD): VibeLink Management Platform (Round 2)
 
 ## 1. Overview
-VibeLink is a lightning-fast URL shortener built for the Vibeathon Hackathon. It allows users to convert long URLs into quick short links while tracking basic analytics (click counts). The application is optimized for speed, simplicity, and a seamless developer handoff.
+The VibeLink Management Platform extends the VibeLink URL shortener to introduce robust link control and tracking semantics. It now integrates custom user authentication, deep analytics (creation, last accessed timestamps), and physical business logic constraints (expiry limits, disable toggles, and URL mutability).
 
-## 2. Tech Stack & Architecture
-* **Frontend**: React (TypeScript), Vite, Tailwind CSS (v3.4)
-* **Backend Database**: Supabase (PostgreSQL)
-* **Deployment**: Vercel (Auto-deployed via GitHub Push)
-* **Architecture Approach**: 
-  Instead of relying on a dedicated Node/Express backend or edge functions to handle redirects, the app implements a blazing-fast "Client-Side SPA Redirect" approach combined with Supabase direct querying. This fulfills the hackathon constraints of maximum speed and minimal boilerplate. 
+## 2. Tech Stack & Architecture Updates
+* **Authentication**: A custom native Supabase `app_users` table with Row Level Security was created to bypass email-confirmation friction required by default endpoints, allowing instant Registration & Login. Session persistence utilizes `localStorage`.
+* **Database Schema Changes**: 
+  - `user_id` constraint attached to the Links table for multi-tenant data isolation.
+  - `click_limit` (integer, nullable) to evaluate link expiration.
+  - `is_active` (boolean) to provide hard-stops for redirecting logic.
+  - `last_accessed_at` (timestamp) updated dynamically upon redirection.
 
-## 3. Implementation Details
+## 3. Implemented Features & Logic
 
-### 3.1 URL Shortening (Core Mechanism)
-* A user submits a destination URL.
-* Basic validation ensures the URL format is valid (auto-appending `https://` if `http/https` is missing).
-* A random 5-character string is generated via base-36 encoding (`Math.random().toString(36).substring(2, 7)`).
-* The original URL and short-code are saved to a Supabase table named `links`.
+### 3.1 Authentication & User Dashboard
+* Users are greeted with an adaptive Login/Register gateway UI. 
+* Upon authentication, users are redirected to a Dashboard that fetches and mounts _only_ their links via (`.eq('user_id', user.id)`). Logging out clears local state and storage, successfully redirecting to the Home Page gateway.
 
-### 3.2 Routing & Redirection 
-* To eliminate the need for an external backend or advanced Next.js dynamic routing, the monolithic `App.tsx` handles redirection.
-* On initialization `useEffect`, the app inspects `window.location.pathname`.
-* If a path exists (e.g., `deployed-url.com/aBc12`), the app enters "Redirect State". It queries Supabase matching the `short_code`, increments the `clicks` counter in the database, and performs an immediate `window.location.href = original_url`.
+### 3.2 Link Expiry Limit
+* Optional integer input (`clickLimit`) during link creation.
+* Redirection interception: If `clicks >= clickLimit`, the router intercepts the request, aborts redirection, and mounts a native React Error UI explaining the Expiry.
 
-### 3.3 Click Tracking (Analytics)
-* Tracking is done at the point of redirection.
-* Before the user is sent to the target URL, the matching database entry is updated: `clicks = current_clicks + 1`.
-* The dashboard fetches all existing links ordered by `created_at DESC` and simply reads the `clicks` integer counter, giving real-time tracking data!
+### 3.3 Link Enable / Disable
+* A toggle-status button inside the dashboard flips the `is_active` boolean on the DB.
+* Redirection interception: If `data.is_active` evaluates to false, another specific Error UI intercepts the request.
 
-### 3.4 Data Persistence
-* The `links` table inside Supabase serves as a persistent layer.
-* Row Level Security (RLS) is enabled and set up for generic read/write access to facilitate immediate hackathon-speed testing without requiring active User Authentication.
+### 3.4 Destination Evolution (Edit URL)
+* An inline UI swap replaces the display destination with a text-input when the "Edit" button is clicked.
+* Users can alter the `original_url`. Validation triggers automatically (enforcing protocol prefixes) and updates the DB entry. Subsequent requests immediately redirect to the new target.
 
-## 4. Requirement Traceability
-| Requirement | Implementation Detail | Status |
-| ----------- | ----------------------- | ------ |
-| **URL Shortening** | Users can submit Long URLs. Appends `https/http` and inserts row into DB | ✅ Done |
-| **Redirection** | Reading `window.location.pathname` and fetching `original_url` from DB | ✅ Done |
-| **Click Tracking** | Immediate database update upon redirect before routing | ✅ Done |
-| **Link Dashboard** | Grid UI mapped over existing links with Original, Shortened, and Clicks data | ✅ Done |
-| **Persistence** | Supabase Postgres DB layer retains data across refresh | ✅ Done |
-| **Validation** | Utilizes JS `URL` constructor to assert submission is a valid URL, preventing empty. | ✅ Done |
+### 3.5 Timestamps Processing
+* Display fields process the default ISO strings (`created_at` and `last_accessed_at`) into clean localized formats (`toLocaleString()`). If the link hasn't been accessed yet, it gracefully displays "Never".
 
-## 5. UI/UX Features
-* **Glassmorphism Base Layer**: Implemented using Tailwind backdrop blur and subtle borders via custom hex opacity.
-* **Micro-interactions**: Subtle hover state lifting (translate-y), border glows, and spinner interactions.
-* **1-Click Copy**: Included a native clipboard API button for instantly copying the shortlink.
+## 4. Verification Traceability Matrix
+| Criteria | Implementation Status |
+| -------- | --------------------- |
+| 1. Login & Register Work | ✅ Done. Custom `app_users` table handles instant auth and session state. |
+| 2. User Dashboard | ✅ Done. Dashboard strictly protects and fetches links by `user_id`. |
+| 3. Click Limit Creation | ✅ Done. Optional input box mapped to `click_limit` path-redirection aborts. |
+| 4. Enable/Disable Toggle | ✅ Done. 1-click active flipping state visible on cards. |
+| 5. Destination Updating | ✅ Done. Inline input overriding existing Database destination mapping. |
+| 6. Logout Navigation | ✅ Done. Clears user entity triggering the App router to paint the Home gateway. |
