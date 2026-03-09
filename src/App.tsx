@@ -185,19 +185,25 @@ ${retrievedContext}
 
 CRITICAL RULE: If the user asks ANY question not explicitly covered in the context above (e.g. general knowledge, other companies, off-topic subjects like France, AI, Elon Musk), you MUST respond EXACTLY with this string: "I'm sorry, I couldn't find that information in the TapNex documentation." Do NOT invent or extrapolate answers.`;
 
-      // Free blazing-fast llm invocation
-      const res = await fetch("https://text.pollinations.ai/", {
+      // Groq RAG LLM invocation
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`
+        },
         body: JSON.stringify({
+          model: "llama3-8b-8192", // Using one of Groq's fastest free models
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userMessage }
-          ]
+          ],
+          temperature: 0.2
         })
       });
 
-      const textOutput = await res.text();
+      const data = await res.json();
+      const textOutput = data.choices?.[0]?.message?.content || "Sorry, I couldn't process that.";
       setMessages(prev => [...prev, { role: 'assistant', content: textOutput }]);
     } catch (err) {
       setMessages(prev => [...prev, { role: 'assistant', content: "An error occurred fetching the response." }]);
