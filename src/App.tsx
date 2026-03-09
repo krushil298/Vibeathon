@@ -193,8 +193,7 @@ CRITICAL RULE: If the user asks ANY question not explicitly covered in the conte
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userMessage }
-          ],
-          model: "mistral"
+          ]
         })
       });
 
