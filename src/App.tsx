@@ -167,9 +167,15 @@ export default function App() {
   const t1Scale   = useTransform(scrollYProgress, [0, 0.20], [1, 0.9]);
 
   const t2Opacity = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [0, 1, 1, 0]);
-  const t2X       = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [-1000, 0, 0, -1000]);
-  const t2Y       = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [500, 0, 0, -500]);
-  const t2Rotate  = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [-15, 0, 0, 15]);
+  const t2TitleY  = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [-300, 0, 0, -300]);
+  const t2c1X = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [-800, 0, 0, -800]);
+  const t2c1Y = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [-800, 0, 0, -800]);
+  const t2c2X = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [800, 0, 0, 800]);
+  const t2c2Y = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [-800, 0, 0, -800]);
+  const t2c3X = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [-800, 0, 0, -800]);
+  const t2c3Y = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [800, 0, 0, 800]);
+  const t2c4X = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [800, 0, 0, 800]);
+  const t2c4Y = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [800, 0, 0, 800]);
 
   const t3Opacity = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [0, 1, 1, 0]);
   const t3X       = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [1000, 0, 0, 1000]);
@@ -497,21 +503,21 @@ export default function App() {
             </motion.div>
 
             {/* STAGE 2: How It Works */}
-            <motion.div style={{ opacity: t2Opacity, x: t2X, y: t2Y, rotate: t2Rotate }} className="absolute text-center flex flex-col items-center w-full max-w-6xl px-4">
-              <h2 className="text-4xl md:text-5xl font-black text-white mb-16 tracking-tight">How It Works</h2>
+            <motion.div style={{ opacity: t2Opacity }} className="absolute text-center flex flex-col items-center w-full max-w-6xl px-4">
+              <motion.h2 style={{ y: t2TitleY }} className="text-4xl md:text-5xl font-black text-white mb-16 tracking-tight">How It Works</motion.h2>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 w-full">
                 {[
-                  {n:'01', t:'Enter Idea', d:'Describe your concept and target audience.'},
-                  {n:'02', t:'AI Analyzes', d:'Our models process live market trends.'},
-                  {n:'03', t:'Get Score', d:'Receive a comprehensive validation metric.'},
-                  {n:'04', t:'Improve', d:'Pivot based on data-driven suggestions.'}
+                  {n:'01', t:'Enter Idea', d:'Describe your concept and target audience.', x:t2c1X, y:t2c1Y},
+                  {n:'02', t:'AI Analyzes', d:'Our models process live market trends.', x:t2c2X, y:t2c2Y},
+                  {n:'03', t:'Get Score', d:'Receive a comprehensive validation metric.', x:t2c3X, y:t2c3Y},
+                  {n:'04', t:'Improve', d:'Pivot based on data-driven suggestions.', x:t2c4X, y:t2c4Y}
                 ].map((s,i)=>(
-                  <div key={i} className="bg-black/50 border border-white/10 rounded-3xl p-6 text-left backdrop-blur-xl relative overflow-hidden group shadow-2xl">
+                  <motion.div key={i} style={{ x: s.x, y: s.y }} className="bg-black/50 border border-white/10 rounded-3xl p-6 text-left backdrop-blur-xl relative overflow-hidden group shadow-2xl">
                     <div className="absolute top-0 right-0 p-6 text-5xl font-black text-white/5 group-hover:text-cyan-500/10 transition-colors">{s.n}</div>
                     <h3 className="text-xl font-bold text-white mb-3 relative z-10">{s.t}</h3>
                     <p className="text-sm text-zinc-400 relative z-10">{s.d}</p>
                     <div className="absolute bottom-0 left-0 h-1 w-0 bg-gradient-to-r from-cyan-500 to-purple-500 transition-all duration-500 group-hover:w-full"/>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </motion.div>
