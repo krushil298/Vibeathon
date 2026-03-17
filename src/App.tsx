@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform, useMotionValue, useSpring } from 'framer-motion';
 import { supabase } from './supabase';
 
 // --- Types ---
@@ -140,27 +140,43 @@ export default function App() {
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
 
-  // --- Central 3D Object Transforms ---
-  const bgScale = useTransform(scrollYProgress, [0, 0.5, 1], [0.8, 1.2, 0.9]);
-  const bgRotateX = useTransform(scrollYProgress, [0, 1], [40, -10]);
-  const bgRotateY = useTransform(scrollYProgress, [0, 1], [-20, 30]);
+  // --- Parallax Mouse Tracker ---
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const springX = useSpring(mouseX, { stiffness: 100, damping: 30 });
+  const springY = useSpring(mouseY, { stiffness: 100, damping: 30 });
+  
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const { clientX, clientY } = e;
+    const { innerWidth, innerHeight } = window;
+    // Normalize mapping from -1 to 1 based on center of screen
+    mouseX.set((clientX / innerWidth - 0.5) * 2);
+    mouseY.set((clientY / innerHeight - 0.5) * 2);
+  };
 
-  // --- Text Slides Opacity & Y Translates ---
-  // Slide 1: Intro (Visbible 0 to 0.2)
-  const t1Opacity = useTransform(scrollYProgress, [0, 0.15, 0.25], [1, 1, 0]);
-  const t1Y       = useTransform(scrollYProgress, [0, 0.25], [0, -50]);
+  // Convert spring values to specific translations for 3D depth
+  const pxFront = useTransform(springX, [-1, 1], [-20, 20]);
+  const pyFront = useTransform(springY, [-1, 1], [-20, 20]);
+  const pxBack = useTransform(springX, [-1, 1], [30, -30]);
+  const pyBack = useTransform(springY, [-1, 1], [30, -30]);
 
-  // Slide 2: Pitch (Visible 0.2 to 0.45)
-  const t2Opacity = useTransform(scrollYProgress, [0.15, 0.25, 0.40, 0.50], [0, 1, 1, 0]);
-  const t2Y       = useTransform(scrollYProgress, [0.15, 0.25, 0.40, 0.50], [50, 0, 0, -50]);
+  // --- 5-Stage Scroll Sequence (500vh) ---
+  const t1Opacity = useTransform(scrollYProgress, [0, 0.15, 0.20], [1, 1, 0]);
+  const t1Y       = useTransform(scrollYProgress, [0, 0.20], [0, -100]);
+  const t1Scale   = useTransform(scrollYProgress, [0, 0.20], [1, 0.9]);
 
-  // Slide 3: Explore (Visible 0.45 to 0.70)
-  const t3Opacity = useTransform(scrollYProgress, [0.40, 0.50, 0.65, 0.75], [0, 1, 1, 0]);
-  const t3Y       = useTransform(scrollYProgress, [0.40, 0.50, 0.65, 0.75], [50, 0, 0, -50]);
+  const t2Opacity = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [0, 1, 1, 0]);
+  const t2Y       = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [100, 0, 0, -100]);
 
-  // Slide 4: Compete (Visible 0.70 to 1)
-  const t4Opacity = useTransform(scrollYProgress, [0.65, 0.75, 1], [0, 1, 1]);
-  const t4Y       = useTransform(scrollYProgress, [0.65, 0.75, 1], [50, 0, 0]);
+  const t3Opacity = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [0, 1, 1, 0]);
+  const t3Y       = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [100, 0, 0, -100]);
+
+  const t4Opacity = useTransform(scrollYProgress, [0.55, 0.65, 0.75, 0.80], [0, 1, 1, 0]);
+  const t4Y       = useTransform(scrollYProgress, [0.55, 0.65, 0.75, 0.80], [100, 0, 0, -100]);
+  const t4RotateX = useTransform(scrollYProgress, [0.55, 0.65, 0.75, 0.80], [30, 0, 0, -30]);
+
+  const t5Opacity = useTransform(scrollYProgress, [0.75, 0.85, 1], [0, 1, 1]);
+  const t5Y       = useTransform(scrollYProgress, [0.75, 0.85, 1], [100, 0, 0]);
 
   const [form,setForm]=useState({title:'',description:'',problem_statement:'',target_audience:'',revenue_model:REVENUE_MODELS[0],category:CATEGORIES[0],difficulty:3,market_potential:'High' as MarketPotential,stage:'Concept' as Stage});
 
@@ -224,13 +240,6 @@ export default function App() {
     return list;
   },[ideas,search,filterCat,filterDiff,filterMarket,filterStage,filterRevenue,sortBy]);
 
-  const stats=useMemo(()=>{
-    if(!ideas.length)return{total:0,topCat:'—',avgDiff:'—',avgScore:'—',topIdea:null as Idea|null};
-    const cc:Record<string,number>={};let ds=0,ss=0;
-    ideas.forEach(i=>{cc[i.category]=(cc[i.category]||0)+1;ds+=i.difficulty;ss+=getScore(i);});
-    const topIdea=[...ideas].sort((a,b)=>getScore(b)-getScore(a))[0];
-    return{total:ideas.length,topCat:Object.entries(cc).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—',avgDiff:(ds/ideas.length).toFixed(1),avgScore:(ss/ideas.length).toFixed(0),topIdea};
-  },[ideas]);
 
   const catBreakdown=useMemo(()=>{
     const m:Record<string,number>={};ideas.forEach(i=>{m[i.category]=(m[i.category]||0)+1;});
@@ -432,95 +441,147 @@ export default function App() {
       {/* ── Dashboard Page ── */}
       {activePage === 'dashboard' && (
       <>
-      {/* ── Hero Section ── */}
-      <section ref={heroRef} className="relative h-[400vh]">
-        <div className={`sticky top-16 h-[calc(100vh-64px)] w-full overflow-hidden flex items-center justify-center [perspective:1000px] border-b ${T.div}`}>
-          {/* Main static backdrop */}
-          <div className="absolute inset-0 pointer-events-none">
-            <div className={`absolute inset-0 ${d?'bg-[#020202]':'bg-[#f5f5f7]'}`}/>
+      {/* ── Hero Section (Futuristic Landing Page) ── */}
+      <section ref={heroRef} className="relative h-[500vh]">
+        <div 
+          onMouseMove={handleMouseMove}
+          className="sticky top-16 h-[calc(100vh-64px)] w-full overflow-hidden flex items-center justify-center [perspective:1200px] border-b bg-[#050508]"
+        >
+          {/* Animated Particles and Globs Backdrop */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-cyan-600/10 rounded-full blur-[120px] mix-blend-screen animate-pulse"/>
+            <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[100px] mix-blend-screen animate-pulse" style={{animationDelay:'2s'}}/>
           </div>
-          
-          {/* The Central Twisting 3D Object (Kontenta/Apple style glass container) */}
-          <motion.div 
-            style={{ scale: bgScale, rotateX: bgRotateX, rotateY: bgRotateY }}
-            className={`absolute w-[80%] md:w-[60%] max-w-4xl aspect-[4/3] rounded-[3rem] md:rounded-[4rem] border flex items-center justify-center p-8 origin-center shadow-2xl overflow-hidden pointer-events-none ${d?'bg-[#111116]/80 border-white/5 shadow-[0_0_100px_rgba(0,0,0,1)]':'bg-white/80 border-black/5 shadow-[0_0_60px_rgba(0,0,0,0.1)]'} backdrop-blur-2xl`}
-          >
-            {/* Inner dynamic lighting/mesh inside the object */}
-            <div className={`absolute inset-0 bg-gradient-to-br opacity-50 ${d?'from-indigo-500/10 via-purple-500/5 to-transparent':'from-indigo-400/5 via-purple-400/5 to-transparent'}`}/>
-            <div className={`absolute top-0 right-1/4 w-[300px] h-[300px] rounded-full blur-[80px] ${d?'bg-indigo-600/20':'bg-indigo-300/30'}`}/>
-            <div className={`absolute bottom-0 left-1/4 w-[400px] h-[400px] rounded-full blur-[100px] ${d?'bg-purple-600/10':'bg-purple-300/20'}`}/>
-            <div className="absolute inset-0 border border-white/10 rounded-[3rem] md:rounded-[4rem] mix-blend-overlay"/>
-          </motion.div>
 
-          {/* Foreground Text Track - Centered Overlays */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-6">
             
-            {/* SLIDE 1: Intro */}
-            <motion.div style={{ opacity: t1Opacity, y: t1Y }} className="absolute text-center flex flex-col items-center">
-              <div className={`inline-flex items-center gap-2 border rounded-full px-4 py-1.5 text-xs font-bold mb-6 ${d?'bg-white/5 border-white/10 text-zinc-300':'bg-black/5 border-black/10 text-zinc-600'}`}>
-                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"/> IdeaVault
-              </div>
-              <h1 className={`text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[1.1] mb-6 ${d?'text-zinc-100':'text-zinc-900'}`}>
-                Validate. <br/><span className="text-indigo-400">Compare.</span> <br/>Ship.
-              </h1>
-              <p className={`text-lg md:text-xl max-w-lg mx-auto leading-relaxed ${d?'text-zinc-400':'text-zinc-500'}`}>
-                The intelligence platform for builders. Market-test your startup ideas globally before you write a single line of code.
-              </p>
-            </motion.div>
-
-            {/* SLIDE 2: Pitch */}
-            <motion.div style={{ opacity: t2Opacity, y: t2Y }} className="absolute text-center flex flex-col items-center">
-              <div className="text-7xl mb-6">💡</div>
-              <h1 className={`text-4xl md:text-6xl font-black tracking-tighter leading-tight mb-6 ${d?'text-zinc-100':'text-zinc-900'}`}>
-                Pitch Your Ambitions
-              </h1>
-              <p className={`text-lg md:text-xl max-w-xl mx-auto leading-relaxed ${d?'text-zinc-400':'text-zinc-500'}`}>
-                Define your exact problem statement, target audience, and business model. Publish your concepts to a global think-tank of founders and operators instantly.
-              </p>
-            </motion.div>
-
-            {/* SLIDE 3: Explore */}
-            <motion.div style={{ opacity: t3Opacity, y: t3Y }} className="absolute text-center flex flex-col items-center">
-              <div className="text-7xl mb-6">🔍</div>
-              <h1 className={`text-4xl md:text-6xl font-black tracking-tighter leading-tight mb-6 ${d?'text-zinc-100':'text-zinc-900'}`}>
-                Analyze The Market
-              </h1>
-              <p className={`text-lg md:text-xl max-w-xl mx-auto leading-relaxed ${d?'text-zinc-400':'text-zinc-500'}`}>
-                Filter by industry constraints. Identify high-potential models in FinTech, AI, and SaaS. We map difficulty against revenue potential so you can pivot precisely.
-              </p>
-            </motion.div>
-
-            {/* SLIDE 4: Compete / Trending */}
-            <motion.div style={{ opacity: t4Opacity, y: t4Y }} className="absolute text-center flex flex-col items-center w-full max-w-4xl">
-              <div className="text-7xl mb-6">🔥</div>
-              <h1 className={`text-4xl md:text-6xl font-black tracking-tighter leading-tight mb-10 ${d?'text-zinc-100':'text-zinc-900'}`}>
-                Climb The Trends
-              </h1>
+            {/* STAGE 1: Hero */}
+            <motion.div style={{ opacity: t1Opacity, y: t1Y, scale: t1Scale }} className="absolute inset-0 flex items-center justify-center">
               
-              <div className="flex flex-wrap items-center justify-center gap-4 mb-12">
+              {/* Background Parallax Mock Cards */}
+              <motion.div style={{ x: pxBack, y: pyBack, rotate:-5 }} className="absolute top-1/4 left-[10%] w-64 h-32 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md p-4 hidden lg:flex flex-col gap-3 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+                <div className="h-3 w-1/3 bg-cyan-400/20 rounded-full"/>
+                <div className="flex gap-2"><div className="h-8 flex-1 bg-white/5 rounded-lg"/><div className="h-8 flex-1 bg-white/5 rounded-lg"/></div>
+              </motion.div>
+              
+              <motion.div style={{ x: pxFront, y: pyFront, rotate:5 }} className="absolute bottom-1/4 right-[10%] w-56 h-40 bg-white/5 border border-purple-500/20 rounded-2xl backdrop-blur-xl p-4 hidden lg:flex flex-col justify-between shadow-[0_0_50px_rgba(168,85,247,0.1)]">
+                <div className="h-4 w-1/2 bg-purple-400/20 rounded-full"/>
+                <div className="w-full h-16 bg-gradient-to-r from-purple-500/10 to-cyan-500/10 rounded-xl rounded-b-none border-t border-white/10 mt-auto"/>
+              </motion.div>
+
+              <div className="text-center flex flex-col items-center relative z-10 w-full max-w-5xl">
+                <div className="inline-flex items-center gap-2 border rounded-full px-5 py-2 text-xs font-bold mb-8 bg-cyan-950/30 border-cyan-500/30 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+                  <span className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(6,182,212,1)]"/> IdeaVault 2.0 AI Engine
+                </div>
+                <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black tracking-tighter leading-[1.05] mb-8 text-white">
+                  Validate Your Startup Idea <br/>
+                  <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent filter drop-shadow-[0_0_30px_rgba(168,85,247,0.3)]">in Seconds</span>
+                </h1>
+                <p className="text-lg md:text-xl max-w-2xl mx-auto leading-relaxed text-zinc-400 mb-10">
+                  AI-powered insights, deep market analysis, and predictive success scoring. Stop guessing and start validating with data.
+                </p>
                 <button onClick={()=>{setShowForm(true);setFormError('');setFormSuccess(false);}}
-                  className={`flex items-center gap-2 font-bold px-8 py-4 rounded-2xl transition-all active:scale-95 shadow-xl text-base pointer-events-auto ${d?'bg-white text-black hover:bg-zinc-200':'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
-                  <Ic.Plus/> Start Building
-                </button>
-                <button onClick={()=>{setActivePage('trending'); setExpandedId(null);}}
-                  className={`flex items-center gap-2 border font-semibold px-8 py-4 rounded-2xl transition-all text-base pointer-events-auto ${d?'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10 backdrop-blur-md':'bg-black/5 border-black/10 text-zinc-700 hover:bg-black/10 backdrop-blur-md shadow-sm'}`}>
-                  View Trending Now
+                  className="pointer-events-auto group relative inline-flex items-center justify-center px-8 py-4 font-bold text-white transition-all duration-200 bg-transparent rounded-2xl overflow-hidden active:scale-95">
+                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-purple-600 transition-all duration-200 group-hover:opacity-90"/>
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-20 bg-[radial-gradient(circle_at_center,white_0%,transparent_100%)] transition-opacity duration-200"/>
+                  <span className="relative flex items-center gap-2"><Ic.Check/> Analyze Idea</span>
                 </button>
               </div>
+            </motion.div>
 
-              <div className="flex flex-wrap items-center justify-center gap-6 md:gap-12 w-full">
+            {/* STAGE 2: How It Works */}
+            <motion.div style={{ opacity: t2Opacity, y: t2Y }} className="absolute text-center flex flex-col items-center w-full max-w-6xl px-4">
+              <h2 className="text-4xl md:text-5xl font-black text-white mb-16 tracking-tight">How It Works</h2>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 w-full">
                 {[
-                  {val:stats.total, label:'Global Ideas'},
-                  {val:stats.topCat, label:'Top Sector'},
-                  {val:stats.avgDiff!=='—'?stats.avgDiff+'/5':'—', label:'Avg Friction'},
+                  {n:'01', t:'Enter Idea', d:'Describe your concept and target audience.'},
+                  {n:'02', t:'AI Analyzes', d:'Our models process live market trends.'},
+                  {n:'03', t:'Get Score', d:'Receive a comprehensive validation metric.'},
+                  {n:'04', t:'Improve', d:'Pivot based on data-driven suggestions.'}
                 ].map((s,i)=>(
-                  <div key={i} className={`text-center px-6 py-4 rounded-2xl border flex-1 min-w-[140px] max-w-[200px] ${d?'bg-white/5 border-white/10 backdrop-blur-xl':'bg-white/50 border-black/5 backdrop-blur-xl'}`}>
-                    <div className={`text-3xl md:text-4xl font-black tracking-tight ${d?'text-zinc-100':'text-zinc-900'}`}>{s.val}</div>
-                    <div className={`text-xs font-bold mt-2 uppercase tracking-widest ${d?'text-zinc-500':'text-zinc-400'}`}>{s.label}</div>
+                  <div key={i} className="bg-white/5 border border-white/10 rounded-3xl p-6 text-left backdrop-blur-md relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-6 text-5xl font-black text-white/5 group-hover:text-cyan-500/10 transition-colors">{s.n}</div>
+                    <h3 className="text-xl font-bold text-white mb-3 relative z-10">{s.t}</h3>
+                    <p className="text-sm text-zinc-400 relative z-10">{s.d}</p>
+                    <div className="absolute bottom-0 left-0 h-1 w-0 bg-gradient-to-r from-cyan-500 to-purple-500 transition-all duration-500 group-hover:w-full"/>
                   </div>
                 ))}
               </div>
             </motion.div>
+
+            {/* STAGE 3: Features */}
+            <motion.div style={{ opacity: t3Opacity, y: t3Y }} className="absolute text-center flex flex-col items-center w-full max-w-5xl">
+              <h2 className="text-4xl md:text-5xl font-black text-white mb-12 tracking-tight">Unfair Advantages</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                {[
+                  {icon:'🧠', t:'Market Analysis', d:'Deep dive into your sector\'s TAM, SAM, and SOM using predictive AI modeling.'},
+                  {icon:'⚔️', t:'Competitor Insights', d:'Instantly map your idea against existing players and find the whitespace.'},
+                  {icon:'🎯', t:'AI Scoring System', d:'A proprietary 1-100 score analyzing feasibility, difficulty, and revenue potential.'},
+                  {icon:'📈', t:'Growth Suggestions', d:'Actionable steps to improve your pitch, business model, and launch strategy.'}
+                ].map((s,i)=>(
+                  <div key={i} className="flex gap-5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-500/30 rounded-3xl p-6 text-left backdrop-blur-md transition-all group pointer-events-auto cursor-default">
+                    <div className="text-4xl filter drop-shadow-md group-hover:scale-110 transition-transform">{s.icon}</div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white mb-2">{s.t}</h3>
+                      <p className="text-sm text-zinc-400 leading-relaxed">{s.d}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* STAGE 4: Live Dashboard Preview (3D Mock) */}
+            <motion.div style={{ opacity: t4Opacity, y: t4Y, rotateX: t4RotateX }} className="absolute flex items-center justify-center w-full max-w-5xl [transform-style:preserve-3d]">
+              <div className="w-full bg-[#0a0a0f] border border-white/10 rounded-[2rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-hidden">
+                {/* Mac Header Mock */}
+                <div className="bg-white/5 border-b border-white/10 px-6 py-4 flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500/80"/><div className="w-3 h-3 rounded-full bg-yellow-500/80"/><div className="w-3 h-3 rounded-full bg-green-500/80"/>
+                  <div className="mx-auto text-xs font-semibold text-zinc-500">Validation Dashboard</div>
+                </div>
+                <div className="p-8 grid grid-cols-3 gap-6">
+                  <div className="col-span-2 space-y-6">
+                    <div className="h-10 w-3/4 bg-white/5 rounded-xl border border-white/5"/>
+                    <div className="h-40 w-full bg-gradient-to-t from-cyan-500/20 to-transparent border border-white/5 rounded-2xl flex items-end p-4">
+                       <svg className="w-full h-24 text-cyan-500" viewBox="0 0 100 30" preserveAspectRatio="none"><path d="M0,30 Q25,10 50,20 T100,5" fill="none" stroke="currentColor" strokeWidth="2"/></svg>
+                    </div>
+                  </div>
+                  <div className="col-span-1 space-y-6">
+                    <div className="bg-white/5 border border-purple-500/20 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 aspect-square">
+                      <div className="text-6xl font-black text-white filter drop-shadow-[0_0_15px_rgba(168,85,247,0.5)]">94</div>
+                      <div className="text-xs font-bold text-zinc-400 uppercase tracking-widest">AI Score</div>
+                    </div>
+                    <div className="h-20 w-full bg-white/5 rounded-xl border border-white/5"/>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* STAGE 5: Metrics & Final CTA */}
+            <motion.div style={{ opacity: t5Opacity, y: t5Y }} className="absolute text-center flex flex-col items-center w-full max-w-4xl">
+              <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-tight mb-16 text-white filter drop-shadow-lg">
+                Stop Guessing. <br/><span className="text-cyan-400 filter drop-shadow-[0_0_20px_rgba(6,182,212,0.4)]">Start Validating.</span>
+              </h1>
+              
+              <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8 w-full mb-16">
+                {[
+                  {val:'85%', label:'Prediction Accuracy'},
+                  {val:'3x', label:'Faster Validation'},
+                  {val:'10k+', label:'Ideas Analyzed'},
+                ].map((s,i)=>(
+                  <div key={i} className="text-center px-6 py-6 rounded-3xl border flex-1 min-w-[200px] bg-white/5 border-white/10 backdrop-blur-xl hover:bg-white/10 transition-colors">
+                    <div className="text-4xl md:text-6xl font-black text-white mb-2 filter drop-shadow-md">{s.val}</div>
+                    <div className="text-sm font-bold uppercase tracking-widest text-zinc-400">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              <button onClick={()=>{setShowForm(true);setFormError('');setFormSuccess(false);}}
+                className="pointer-events-auto group relative inline-flex items-center justify-center px-10 py-5 font-bold text-white transition-all duration-200 bg-transparent rounded-2xl overflow-hidden active:scale-95 text-lg shadow-[0_0_40px_rgba(6,182,212,0.2)]">
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 transition-all duration-300 group-hover:scale-105"/>
+                <span className="relative flex items-center gap-3">Start Validating Your Idea Today <Ic.External/></span>
+              </button>
+            </motion.div>
+
           </div>
         </div>
       </section>
