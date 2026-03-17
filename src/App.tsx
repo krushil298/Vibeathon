@@ -178,9 +178,24 @@ export default function App() {
   const t2c4Y = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [800, 0, 0, 800]);
 
   const t3Opacity = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [0, 1, 1, 0]);
-  const t3X       = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [1000, 0, 0, 1000]);
-  const t3Y       = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [500, 0, 0, -500]);
-  const t3Rotate  = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [15, 0, 0, -15]);
+  const t3TitleY  = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [-300, 0, 0, -300]);
+  const t3c1X = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [-800, 0, 0, -800]);
+  const t3c1Y = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [-800, 0, 0, -800]);
+  const t3c2X = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [800, 0, 0, 800]);
+  const t3c2Y = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [-800, 0, 0, -800]);
+  const t3c3X = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [-800, 0, 0, -800]);
+  const t3c3Y = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [800, 0, 0, 800]);
+  const t3c4X = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [800, 0, 0, 800]);
+  const t3c4Y = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [800, 0, 0, 800]);
+  
+  // --- Background Animated Parallax Blobs ---
+  const bg1X = useTransform(scrollYProgress, [0, 1], [-200, 600]);
+  const bg1Y = useTransform(scrollYProgress, [0, 1], [-200, 1000]);
+  const bg1Scale = useTransform(scrollYProgress, [0, 0.5, 1], [1, 1.5, 1]);
+  
+  const bg2X = useTransform(scrollYProgress, [0, 1], [200, -600]);
+  const bg2Y = useTransform(scrollYProgress, [0, 1], [200, -1000]);
+  const bg2Scale = useTransform(scrollYProgress, [0, 0.5, 1], [1.5, 1, 1.5]);
 
   const t4Opacity = useTransform(scrollYProgress, [0.55, 0.65, 0.75, 0.80], [0, 1, 1, 0]);
   const t4X       = useTransform(scrollYProgress, [0.55, 0.65, 0.75, 0.80], [-1000, 0, 0, -1000]);
@@ -462,8 +477,8 @@ export default function App() {
         >
           {/* Animated Particles and Globs Backdrop */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-[150px] animate-pulse"/>
-            <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[150px] animate-pulse" style={{animationDelay:'2s'}}/>
+            <motion.div style={{ x: bg1X, y: bg1Y, scale: bg1Scale }} className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-[150px] animate-[pulse_4s_ease-in-out_infinite]"/>
+            <motion.div style={{ x: bg2X, y: bg2Y, scale: bg2Scale }} className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[150px] animate-[pulse_6s_ease-in-out_infinite]"/>
           </div>
 
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-6">
@@ -523,22 +538,22 @@ export default function App() {
             </motion.div>
 
             {/* STAGE 3: Features */}
-            <motion.div style={{ opacity: t3Opacity, x: t3X, y: t3Y, rotate: t3Rotate }} className="absolute text-center flex flex-col items-center w-full max-w-5xl">
-              <h2 className="text-4xl md:text-5xl font-black text-white mb-12 tracking-tight">Unfair Advantages</h2>
+            <motion.div style={{ opacity: t3Opacity }} className="absolute text-center flex flex-col items-center w-full max-w-5xl">
+              <motion.h2 style={{ y: t3TitleY }} className="text-4xl md:text-5xl font-black text-white mb-12 tracking-tight">Unfair Advantages</motion.h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                 {[
-                  {icon:'🧠', t:'Market Analysis', d:'Deep dive into your sector\'s TAM, SAM, and SOM using predictive AI modeling.'},
-                  {icon:'⚔️', t:'Competitor Insights', d:'Instantly map your idea against existing players and find the whitespace.'},
-                  {icon:'🎯', t:'AI Scoring System', d:'A proprietary 1-100 score analyzing feasibility, difficulty, and revenue potential.'},
-                  {icon:'📈', t:'Growth Suggestions', d:'Actionable steps to improve your pitch, business model, and launch strategy.'}
+                  {icon:'🧠', t:'Market Analysis', d:'Deep dive into your sector\'s TAM, SAM, and SOM using predictive AI modeling.', x:t3c1X, y:t3c1Y},
+                  {icon:'⚔️', t:'Competitor Insights', d:'Instantly map your idea against existing players and find the whitespace.', x:t3c2X, y:t3c2Y},
+                  {icon:'🎯', t:'AI Scoring System', d:'A proprietary 1-100 score analyzing feasibility, difficulty, and revenue potential.', x:t3c3X, y:t3c3Y},
+                  {icon:'📈', t:'Growth Suggestions', d:'Actionable steps to improve your pitch, business model, and launch strategy.', x:t3c4X, y:t3c4Y}
                 ].map((s,i)=>(
-                  <div key={i} className="flex gap-5 bg-black/50 hover:bg-black/70 border border-white/10 hover:border-cyan-500/30 rounded-3xl p-6 text-left backdrop-blur-xl transition-all group pointer-events-auto cursor-default shadow-2xl">
+                  <motion.div key={i} style={{ x: s.x, y: s.y }} className="flex gap-5 bg-black/50 hover:bg-black/70 border border-white/10 hover:border-cyan-500/30 rounded-3xl p-6 text-left backdrop-blur-xl transition-all group pointer-events-auto cursor-default shadow-2xl">
                     <div className="text-4xl filter drop-shadow-md group-hover:scale-110 transition-transform">{s.icon}</div>
                     <div>
                       <h3 className="text-xl font-bold text-white mb-2">{s.t}</h3>
                       <p className="text-sm text-zinc-400 leading-relaxed">{s.d}</p>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </motion.div>
