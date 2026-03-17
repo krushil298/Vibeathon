@@ -139,11 +139,32 @@ export default function App() {
 
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-  const sScale = useTransform(scrollYProgress, [0, 1], [1, 4.5]);
-  const sRotateX = useTransform(scrollYProgress, [0, 1], [0, 45]);
-  const sOpacity = useTransform(scrollYProgress, [0, 0.4, 0.7], [1, 1, 0]);
-  const sY = useTransform(scrollYProgress, [0, 1], [0, -150]);
-  const sFilter = useTransform(scrollYProgress, [0, 0.6, 1], ["blur(0px)", "blur(0px)", "blur(12px)"]);
+
+  // Sequence 1: Main Intro "Validate. Compare. Ship."
+  const s1Opacity = useTransform(scrollYProgress, [0, 0.15, 0.25], [1, 1, 0]);
+  const s1Scale   = useTransform(scrollYProgress, [0, 0.25], [1, 3]);
+  const s1Y       = useTransform(scrollYProgress, [0, 0.25], [0, -100]);
+  const s1RotateX = useTransform(scrollYProgress, [0, 0.25], [0, 30]);
+
+  // Sequence 2: "Pitch Your Wildest Ideas"
+  const s2Opacity = useTransform(scrollYProgress, [0.15, 0.25, 0.40, 0.50], [0, 1, 1, 0]);
+  const s2Scale   = useTransform(scrollYProgress, [0.15, 0.50], [0.8, 2.5]);
+  const s2Y       = useTransform(scrollYProgress, [0.15, 0.50], [100, -100]);
+  const s2RotateX = useTransform(scrollYProgress, [0.15, 0.50], [-20, 30]);
+
+  // Sequence 3: "Explore the Market"
+  const s3Opacity = useTransform(scrollYProgress, [0.40, 0.50, 0.65, 0.75], [0, 1, 1, 0]);
+  const s3Scale   = useTransform(scrollYProgress, [0.40, 0.75], [0.8, 2.5]);
+  const s3Y       = useTransform(scrollYProgress, [0.40, 0.75], [100, -100]);
+  const s3RotateX = useTransform(scrollYProgress, [0.40, 0.75], [-20, 30]);
+
+  // Sequence 4: "Climb the Leaderboard"
+  const s4Opacity = useTransform(scrollYProgress, [0.65, 0.75, 0.90, 1], [0, 1, 1, 0]);
+  const s4Scale   = useTransform(scrollYProgress, [0.65, 1], [0.8, 2.5]);
+  const s4Y       = useTransform(scrollYProgress, [0.65, 1], [100, -150]);
+  const s4RotateX = useTransform(scrollYProgress, [0.65, 1], [-20, 30]);
+
+  const sFilter = useTransform(scrollYProgress, [0, 0.9, 1], ["blur(0px)", "blur(0px)", "blur(12px)"]);
 
   const [form,setForm]=useState({title:'',description:'',problem_statement:'',target_audience:'',revenue_model:REVENUE_MODELS[0],category:CATEGORIES[0],difficulty:3,market_potential:'High' as MarketPotential,stage:'Concept' as Stage});
 
@@ -416,8 +437,8 @@ export default function App() {
       {activePage === 'dashboard' && (
       <>
       {/* ── Hero Section ── */}
-      <section ref={heroRef} className={`relative h-[250vh] ${T.div}`}>
-        <div className="sticky top-16 h-[calc(100vh-64px)] w-full overflow-hidden flex items-center justify-center [perspective:1000px]">
+      <section ref={heroRef} className={`relative h-[350vh] ${T.div}`}>
+        <div className="sticky top-16 h-[calc(100vh-64px)] w-full overflow-hidden flex items-center justify-center [perspective:1200px]">
           {/* Hero background gradient mesh */}
           <div className="absolute inset-0 pointer-events-none">
             <div className={`absolute inset-0 ${d?'bg-gradient-to-br from-indigo-950/60 via-[#080810] to-purple-950/40':'bg-gradient-to-br from-indigo-50 via-white to-purple-50'}`}/>
@@ -425,48 +446,83 @@ export default function App() {
             <div className="absolute top-0 right-1/4 w-[400px] h-[250px] bg-purple-500/8 rounded-full blur-3xl"/>
           </div>
           
+          {/* SLIDE 1: Main Intro */}
           <motion.div 
-            style={{ scale: sScale, rotateX: sRotateX, opacity: sOpacity, y: sY, filter: sFilter }}
-            className="relative w-full max-w-4xl mx-auto px-6 md:px-10 text-center flex flex-col items-center origin-center"
+            style={{ scale: s1Scale, rotateX: s1RotateX, opacity: s1Opacity, y: s1Y, filter: sFilter }}
+            className="absolute w-full max-w-4xl px-6 md:px-10 text-center flex flex-col items-center origin-center"
           >
-            {/* Badge */}
             <div className={`inline-flex items-center gap-2 border rounded-full px-4 py-1.5 text-xs font-bold mb-6 ${d?'bg-indigo-500/10 border-indigo-500/20 text-indigo-300':'bg-indigo-50 border-indigo-200 text-indigo-600'}`}>
-              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"/>
-              Startup Idea Validator · Vibeathon 2026
+              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"/> Startup Idea Validator · Vibeathon 2026
             </div>
-            {/* Headline */}
             <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-tight mb-4">
               <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">Validate.</span>{' '}
               <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Compare.</span>{' '}
               <span className={d?'text-white':'text-zinc-900'}>Ship.</span>
             </h1>
-            <p className={`text-base md:text-lg max-w-xl mx-auto mb-8 leading-relaxed ${T.sub}`}>
-              Submit your startup idea, discover what others are building, and find your next big opportunity — all in one place.
+            <p className={`text-base md:text-lg max-w-xl mx-auto leading-relaxed ${T.sub}`}>
+              Scroll to explore what makes IdeaVault the best place to launch your next big thing.
             </p>
-            {/* CTA */}
-            <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
+          </motion.div>
+
+          {/* SLIDE 2: Pitch Ideas */}
+          <motion.div 
+            style={{ scale: s2Scale, rotateX: s2RotateX, opacity: s2Opacity, y: s2Y, filter: sFilter }}
+            className="absolute w-full max-w-4xl px-6 md:px-10 text-center flex flex-col items-center origin-center"
+          >
+            <div className="text-6xl mb-4">💡</div>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-tight mb-4 text-white">
+              Pitch Your Wildest Ideas
+            </h1>
+            <p className={`text-base md:text-lg max-w-xl mx-auto leading-relaxed ${T.sub}`}>
+              Define your problem statement, target audience, and business model. Get your concept out of your head and into the world.
+            </p>
+          </motion.div>
+
+          {/* SLIDE 3: Explore */}
+          <motion.div 
+            style={{ scale: s3Scale, rotateX: s3RotateX, opacity: s3Opacity, y: s3Y, filter: sFilter }}
+            className="absolute w-full max-w-4xl px-6 md:px-10 text-center flex flex-col items-center origin-center"
+          >
+            <div className="text-6xl mb-4">🔍</div>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-tight mb-4 text-white">
+              Explore the Market
+            </h1>
+            <p className={`text-base md:text-lg max-w-xl mx-auto leading-relaxed ${T.sub}`}>
+              Filter through FinTech, AI, SaaS and more. Analyze Difficulty and Market Potential tags to find the perfect pivot.
+            </p>
+          </motion.div>
+
+          {/* SLIDE 4: Compete (Leaderboard + CTAs) */}
+          <motion.div 
+            style={{ scale: s4Scale, rotateX: s4RotateX, opacity: s4Opacity, y: s4Y, filter: sFilter }}
+            className="absolute w-full max-w-4xl px-6 md:px-10 text-center flex flex-col items-center origin-center"
+          >
+            <div className="text-6xl mb-4">🏆</div>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-tight mb-8 text-white">
+              Climb the Leaderboard
+            </h1>
+            
+            <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
               <button onClick={()=>{setShowForm(true);setFormError('');setFormSuccess(false);}}
-                className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold px-6 py-3 rounded-2xl transition-all active:scale-95 shadow-xl shadow-indigo-500/25 text-sm">
+                className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold px-6 py-3 rounded-2xl transition-all active:scale-95 shadow-xl shadow-indigo-500/25 text-sm pointer-events-auto">
                 <Ic.Plus/> Submit Your Idea
-                <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${d?'bg-white/15':'bg-white/40'}`}>N</span>
               </button>
-              <button onClick={()=>searchRef.current?.focus()}
-                className={`flex items-center gap-2 border font-semibold px-6 py-3 rounded-2xl transition-all text-sm ${d?'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10':'bg-white border-gray-200 text-zinc-700 hover:border-gray-300 shadow-sm'}`}>
-                <Ic.Search/> Browse Ideas
-                <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${d?'bg-white/10':'bg-gray-100'}`}>/</span>
+              <button onClick={()=>{setActivePage('leaderboard'); setExpandedId(null);}}
+                className={`flex items-center gap-2 border font-semibold px-6 py-3 rounded-2xl transition-all text-sm pointer-events-auto ${d?'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10':'bg-white border-gray-200 text-zinc-700 hover:border-gray-300 shadow-sm'}`}>
+                View Leaderboard
               </button>
             </div>
-            {/* Live stats strip */}
+
             <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
               {[
-                {emoji:'📊', val:stats.total,       label:'Ideas Submitted'},
-                {emoji:'🏆', val:stats.topCat,      label:'Top Category'},
-                {emoji:'⚙️', val:stats.avgDiff!=='—'?stats.avgDiff+'/5':'—', label:'Avg Difficulty'},
-                {emoji:'⭐', val:stats.avgScore!=='—'?stats.avgScore+' pts':'—', label:'Avg Popularity'},
+                {emoji:'📊', val:stats.total,       label:'Ideas'},
+                {emoji:'🥇', val:stats.topCat,      label:'Top Cat'},
+                {emoji:'⚙️', val:stats.avgDiff!=='—'?stats.avgDiff+'/5':'—', label:'Avg Diff'},
+                {emoji:'⭐', val:stats.avgScore!=='—'?stats.avgScore+' pts':'—', label:'Avg Score'},
               ].map((s,i)=>(
                 <div key={i} className="text-center">
-                  <div className="text-2xl font-black">{s.emoji} {s.val}</div>
-                  <div className={`text-xs font-medium mt-0.5 ${T.muted}`}>{s.label}</div>
+                  <div className="text-xl md:text-2xl font-black">{s.emoji} {s.val}</div>
+                  <div className={`text-[10px] md:text-xs font-medium mt-0.5 ${T.muted}`}>{s.label}</div>
                 </div>
               ))}
             </div>
