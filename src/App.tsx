@@ -639,7 +639,7 @@ export default function App() {
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-6">
             
             {/* STAGE 1: Hero */}
-            <motion.div style={{ opacity: t1Opacity, y: t1Y, scale: t1Scale }} className="absolute inset-0 flex items-center justify-center">
+            <motion.div style={{ opacity: t1Opacity, y: t1Y, scale: t1Scale, zIndex: 1, pointerEvents: 'auto' }} className="absolute inset-0 flex items-center justify-center">
               
               {/* Background Parallax Mock Cards */}
               <motion.div style={{ x: pxBack, y: pyBack, rotate:-5 }} className="absolute top-1/4 left-[10%] w-64 h-32 bg-white/[0.02] border border-white/5 rounded-2xl backdrop-blur-md p-4 hidden lg:flex flex-col gap-3 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
@@ -673,7 +673,7 @@ export default function App() {
             </motion.div>
 
             {/* STAGE 2: How It Works */}
-            <motion.div style={{ opacity: t2Opacity }} className="absolute text-center flex flex-col items-center w-full max-w-6xl px-4">
+            <motion.div style={{ opacity: t2Opacity, zIndex: 2, pointerEvents: 'none' }} className="absolute text-center flex flex-col items-center w-full max-w-6xl px-4">
               <motion.h2 style={{ y: t2TitleY }} className="text-4xl md:text-5xl font-black text-white mb-16 tracking-tight">How It Works</motion.h2>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 w-full">
                 {[
@@ -693,7 +693,7 @@ export default function App() {
             </motion.div>
 
             {/* STAGE 3: Features */}
-            <motion.div style={{ opacity: t3Opacity }} className="absolute text-center flex flex-col items-center w-full max-w-5xl">
+            <motion.div style={{ opacity: t3Opacity, zIndex: 3, pointerEvents: 'none' }} className="absolute text-center flex flex-col items-center w-full max-w-5xl">
               <motion.h2 style={{ y: t3TitleY }} className="text-4xl md:text-5xl font-black text-white mb-12 tracking-tight">Unfair Advantages</motion.h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                 {[
@@ -714,7 +714,7 @@ export default function App() {
             </motion.div>
 
             {/* STAGE 4: Live Dashboard Preview (3D Mock) */}
-            <motion.div style={{ opacity: t4Opacity, x: t4X, y: t4Y, rotateX: t4RotateX, rotateY: t4RotateY }} className="absolute flex items-center justify-center w-full max-w-5xl [transform-style:preserve-3d]">
+            <motion.div style={{ opacity: t4Opacity, x: t4X, y: t4Y, rotateX: t4RotateX, rotateY: t4RotateY, zIndex: 4, pointerEvents: 'none' }} className="absolute flex items-center justify-center w-full max-w-5xl [transform-style:preserve-3d]">
               <div className="w-full bg-[#0a0a0f] border border-white/10 rounded-[2rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-hidden">
                 {/* Mac Header Mock */}
                 <div className="bg-white/5 border-b border-white/10 px-6 py-4 flex items-center gap-2">
@@ -740,7 +740,7 @@ export default function App() {
             </motion.div>
 
             {/* STAGE 5: Metrics & Final CTA */}
-            <motion.div style={{ opacity: t5Opacity, y: t5Y }} className="absolute text-center flex flex-col items-center w-full max-w-4xl">
+            <motion.div style={{ opacity: t5Opacity, y: t5Y, zIndex: 5, pointerEvents: 'auto' }} className="absolute text-center flex flex-col items-center w-full max-w-4xl">
               <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-tight mb-16 text-white filter drop-shadow-lg">
                 Stop Guessing. <br/><span className="text-cyan-400 filter drop-shadow-[0_0_20px_rgba(6,182,212,0.4)]">Start Validating.</span>
               </h1>
