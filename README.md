@@ -1,73 +1,47 @@
-# React + TypeScript + Vite
+# IdeaVault — Startup Idea Validator Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A fullstack web app to submit, browse, and validate startup ideas. Built as part of the Vibeathon hackathon.
 
-Currently, two official plugins are available:
+## 🚀 Tech Stack
+- **Frontend**: Vite + React (TypeScript) + Tailwind CSS
+- **Backend / Database**: Supabase (PostgreSQL)
+- **Deployment**: Vercel (auto-deploy on `git push`)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✅ Features
+- **Idea Submission** — Submit a startup idea with title, description, problem statement, category, difficulty (1–5), and market potential (Low / Medium / High / Very High).
+- **Card Dashboard** — Browse all submitted ideas displayed as rich cards.
+- **Filtering** — Filter by category, difficulty level, and market potential.
+- **Search** — Keyword search across title, description, and category.
+- **Statistics Panel** — See total ideas, most common category, and average difficulty score.
+- **Upvoting** — Upvote ideas you like; persisted in the database.
+- **Trending Section** — Highlights the top 3 most upvoted ideas.
+- **Trending Tab** — Sort all cards by upvote count.
+- **Animated Cards** — Smooth fade-in-up transitions on card render.
+- **Input Validation** — Prevents empty submissions and duplicate titles.
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 🗄️ Database Schema (Supabase)
+```sql
+create table startup_ideas (
+  id uuid default gen_random_uuid() primary key,
+  title text not null unique,
+  description text not null,
+  problem_statement text not null,
+  category text not null,
+  difficulty int not null check (difficulty between 1 and 5),
+  market_potential text not null check (market_potential in ('Low', 'Medium', 'High', 'Very High')),
+  upvotes int default 0 not null,
+  created_at timestamp with time zone default timezone('utc', now()) not null
+);
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 🔧 Running Locally
+```bash
+npm install
+npm run dev
 ```
+
+Open [http://localhost:5173](http://localhost:5173).
+
+## 📦 Deployment
+This project is auto-deployed to Vercel.  
+Every `git push` to `main` triggers a new production deployment.
