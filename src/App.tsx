@@ -82,6 +82,7 @@ const Ic={
   Chevron:({open}:{open:boolean})=><svg className={`w-3.5 h-3.5 transition-transform ${open?'rotate-180':''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>,
   Bulb:()=><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>,
   Flame:()=><svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C9.5 6 6 7.5 6 12a6 6 0 0012 0c0-3-1.5-5.5-3-7a11.3 11.3 0 01-1 5C12.5 8.5 12 5 12 2z"/></svg>,
+  External:()=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
 };
 
 // --- Dropdown Component ---
@@ -449,8 +450,8 @@ export default function App() {
         >
           {/* Animated Particles and Globs Backdrop */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-cyan-600/10 rounded-full blur-[120px] mix-blend-screen animate-pulse"/>
-            <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[100px] mix-blend-screen animate-pulse" style={{animationDelay:'2s'}}/>
+            <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-[150px] animate-pulse"/>
+            <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[150px] animate-pulse" style={{animationDelay:'2s'}}/>
           </div>
 
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-6">
@@ -459,17 +460,17 @@ export default function App() {
             <motion.div style={{ opacity: t1Opacity, y: t1Y, scale: t1Scale }} className="absolute inset-0 flex items-center justify-center">
               
               {/* Background Parallax Mock Cards */}
-              <motion.div style={{ x: pxBack, y: pyBack, rotate:-5 }} className="absolute top-1/4 left-[10%] w-64 h-32 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md p-4 hidden lg:flex flex-col gap-3 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
-                <div className="h-3 w-1/3 bg-cyan-400/20 rounded-full"/>
+              <motion.div style={{ x: pxBack, y: pyBack, rotate:-5 }} className="absolute top-1/4 left-[10%] w-64 h-32 bg-white/[0.02] border border-white/5 rounded-2xl backdrop-blur-md p-4 hidden lg:flex flex-col gap-3 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
+                <div className="h-3 w-1/3 bg-cyan-400/10 rounded-full"/>
                 <div className="flex gap-2"><div className="h-8 flex-1 bg-white/5 rounded-lg"/><div className="h-8 flex-1 bg-white/5 rounded-lg"/></div>
               </motion.div>
               
-              <motion.div style={{ x: pxFront, y: pyFront, rotate:5 }} className="absolute bottom-1/4 right-[10%] w-56 h-40 bg-white/5 border border-purple-500/20 rounded-2xl backdrop-blur-xl p-4 hidden lg:flex flex-col justify-between shadow-[0_0_50px_rgba(168,85,247,0.1)]">
-                <div className="h-4 w-1/2 bg-purple-400/20 rounded-full"/>
-                <div className="w-full h-16 bg-gradient-to-r from-purple-500/10 to-cyan-500/10 rounded-xl rounded-b-none border-t border-white/10 mt-auto"/>
+              <motion.div style={{ x: pxFront, y: pyFront, rotate:5 }} className="absolute bottom-1/4 right-[10%] w-56 h-40 bg-white/[0.02] border border-purple-500/10 rounded-2xl backdrop-blur-xl p-4 hidden lg:flex flex-col justify-between shadow-[0_0_50px_rgba(0,0,0,0.8)]">
+                <div className="h-4 w-1/2 bg-purple-400/10 rounded-full"/>
+                <div className="w-full h-16 bg-gradient-to-r from-purple-500/5 to-cyan-500/5 rounded-xl rounded-b-none border-t border-white/5 mt-auto"/>
               </motion.div>
 
-              <div className="text-center flex flex-col items-center relative z-10 w-full max-w-5xl">
+              <div className="text-center flex flex-col items-center relative z-10 w-full max-w-5xl bg-black/20 backdrop-blur-sm p-12 rounded-[3rem] border border-white/5 shadow-2xl">
                 <div className="inline-flex items-center gap-2 border rounded-full px-5 py-2 text-xs font-bold mb-8 bg-cyan-950/30 border-cyan-500/30 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
                   <span className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(6,182,212,1)]"/> IdeaVault 2.0 AI Engine
                 </div>
@@ -499,7 +500,7 @@ export default function App() {
                   {n:'03', t:'Get Score', d:'Receive a comprehensive validation metric.'},
                   {n:'04', t:'Improve', d:'Pivot based on data-driven suggestions.'}
                 ].map((s,i)=>(
-                  <div key={i} className="bg-white/5 border border-white/10 rounded-3xl p-6 text-left backdrop-blur-md relative overflow-hidden group">
+                  <div key={i} className="bg-black/50 border border-white/10 rounded-3xl p-6 text-left backdrop-blur-xl relative overflow-hidden group shadow-2xl">
                     <div className="absolute top-0 right-0 p-6 text-5xl font-black text-white/5 group-hover:text-cyan-500/10 transition-colors">{s.n}</div>
                     <h3 className="text-xl font-bold text-white mb-3 relative z-10">{s.t}</h3>
                     <p className="text-sm text-zinc-400 relative z-10">{s.d}</p>
@@ -519,7 +520,7 @@ export default function App() {
                   {icon:'🎯', t:'AI Scoring System', d:'A proprietary 1-100 score analyzing feasibility, difficulty, and revenue potential.'},
                   {icon:'📈', t:'Growth Suggestions', d:'Actionable steps to improve your pitch, business model, and launch strategy.'}
                 ].map((s,i)=>(
-                  <div key={i} className="flex gap-5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-500/30 rounded-3xl p-6 text-left backdrop-blur-md transition-all group pointer-events-auto cursor-default">
+                  <div key={i} className="flex gap-5 bg-black/50 hover:bg-black/70 border border-white/10 hover:border-cyan-500/30 rounded-3xl p-6 text-left backdrop-blur-xl transition-all group pointer-events-auto cursor-default shadow-2xl">
                     <div className="text-4xl filter drop-shadow-md group-hover:scale-110 transition-transform">{s.icon}</div>
                     <div>
                       <h3 className="text-xl font-bold text-white mb-2">{s.t}</h3>
@@ -568,7 +569,7 @@ export default function App() {
                   {val:'3x', label:'Faster Validation'},
                   {val:'10k+', label:'Ideas Analyzed'},
                 ].map((s,i)=>(
-                  <div key={i} className="text-center px-6 py-6 rounded-3xl border flex-1 min-w-[200px] bg-white/5 border-white/10 backdrop-blur-xl hover:bg-white/10 transition-colors">
+                  <div key={i} className="text-center px-6 py-6 rounded-3xl border flex-1 min-w-[200px] bg-black/50 border-white/10 backdrop-blur-xl shadow-2xl hover:bg-black/70 transition-colors">
                     <div className="text-4xl md:text-6xl font-black text-white mb-2 filter drop-shadow-md">{s.val}</div>
                     <div className="text-sm font-bold uppercase tracking-widest text-zinc-400">{s.label}</div>
                   </div>
