@@ -431,6 +431,12 @@ export default function App() {
               </button>
             )}
           </div>
+          <div className="flex flex-col gap-0.5 ml-2 text-right">
+            <span className={`text-[10px] ${T.muted}`}>Created: {new Date(idea.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+            {idea.updated_at && idea.updated_at !== idea.created_at && (
+              <span className={`text-[9px] ${T.muted} opacity-70`}>Updated: {new Date(idea.updated_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+            )}
+          </div>
         </div>
       </div>
     );
