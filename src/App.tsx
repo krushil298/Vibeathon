@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { supabase } from './supabase';
 
 // --- Types ---
@@ -135,6 +136,15 @@ export default function App() {
   const [filterRevenue,setFilterRevenue]=useState('All');
   const [sortBy,setSortBy]=useState<SortMode>('newest');
   const searchRef=useRef<HTMLInputElement>(null);
+
+  const heroRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
+  const sScale = useTransform(scrollYProgress, [0, 1], [1, 4.5]);
+  const sRotateX = useTransform(scrollYProgress, [0, 1], [0, 45]);
+  const sOpacity = useTransform(scrollYProgress, [0, 0.4, 0.7], [1, 1, 0]);
+  const sY = useTransform(scrollYProgress, [0, 1], [0, -150]);
+  const sFilter = useTransform(scrollYProgress, [0, 0.6, 1], ["blur(0px)", "blur(0px)", "blur(12px)"]);
+
   const [form,setForm]=useState({title:'',description:'',problem_statement:'',target_audience:'',revenue_model:REVENUE_MODELS[0],category:CATEGORIES[0],difficulty:3,market_potential:'High' as MarketPotential,stage:'Concept' as Stage});
 
   useEffect(()=>{document.documentElement.classList.toggle('dark',dark);},[dark]);
@@ -406,55 +416,61 @@ export default function App() {
       {activePage === 'dashboard' && (
       <>
       {/* ── Hero Section ── */}
-      <section className={`relative overflow-hidden border-b ${T.div}`}>
-        {/* Hero background gradient mesh */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className={`absolute inset-0 ${d?'bg-gradient-to-br from-indigo-950/60 via-[#080810] to-purple-950/40':'bg-gradient-to-br from-indigo-50 via-white to-purple-50'}`}/>
-          <div className="absolute top-0 left-1/4 w-[500px] h-[300px] bg-indigo-500/10 rounded-full blur-3xl"/>
-          <div className="absolute top-0 right-1/4 w-[400px] h-[250px] bg-purple-500/8 rounded-full blur-3xl"/>
-        </div>
-        <div className="relative max-w-4xl mx-auto px-6 md:px-10 py-16 md:py-20 text-center">
-          {/* Badge */}
-          <div className={`inline-flex items-center gap-2 border rounded-full px-4 py-1.5 text-xs font-bold mb-6 ${d?'bg-indigo-500/10 border-indigo-500/20 text-indigo-300':'bg-indigo-50 border-indigo-200 text-indigo-600'}`}>
-            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"/>
-            Startup Idea Validator · Vibeathon 2026
+      <section ref={heroRef} className={`relative h-[250vh] ${T.div}`}>
+        <div className="sticky top-16 h-[calc(100vh-64px)] w-full overflow-hidden flex items-center justify-center [perspective:1000px]">
+          {/* Hero background gradient mesh */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className={`absolute inset-0 ${d?'bg-gradient-to-br from-indigo-950/60 via-[#080810] to-purple-950/40':'bg-gradient-to-br from-indigo-50 via-white to-purple-50'}`}/>
+            <div className="absolute top-0 left-1/4 w-[500px] h-[300px] bg-indigo-500/10 rounded-full blur-3xl"/>
+            <div className="absolute top-0 right-1/4 w-[400px] h-[250px] bg-purple-500/8 rounded-full blur-3xl"/>
           </div>
-          {/* Headline */}
-          <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-tight mb-4">
-            <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">Validate.</span>{' '}
-            <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Compare.</span>{' '}
-            <span className={d?'text-white':'text-zinc-900'}>Ship.</span>
-          </h1>
-          <p className={`text-base md:text-lg max-w-xl mx-auto mb-8 leading-relaxed ${T.sub}`}>
-            Submit your startup idea, discover what others are building, and find your next big opportunity — all in one place.
-          </p>
-          {/* CTA */}
-          <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
-            <button onClick={()=>{setShowForm(true);setFormError('');setFormSuccess(false);}}
-              className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold px-6 py-3 rounded-2xl transition-all active:scale-95 shadow-xl shadow-indigo-500/25 text-sm">
-              <Ic.Plus/> Submit Your Idea
-              <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${d?'bg-white/15':'bg-white/40'}`}>N</span>
-            </button>
-            <button onClick={()=>searchRef.current?.focus()}
-              className={`flex items-center gap-2 border font-semibold px-6 py-3 rounded-2xl transition-all text-sm ${d?'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10':'bg-white border-gray-200 text-zinc-700 hover:border-gray-300 shadow-sm'}`}>
-              <Ic.Search/> Browse Ideas
-              <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${d?'bg-white/10':'bg-gray-100'}`}>/</span>
-            </button>
-          </div>
-          {/* Live stats strip */}
-          <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
-            {[
-              {emoji:'📊', val:stats.total,       label:'Ideas Submitted'},
-              {emoji:'🏆', val:stats.topCat,      label:'Top Category'},
-              {emoji:'⚙️', val:stats.avgDiff!=='—'?stats.avgDiff+'/5':'—', label:'Avg Difficulty'},
-              {emoji:'⭐', val:stats.avgScore!=='—'?stats.avgScore+' pts':'—', label:'Avg Popularity'},
-            ].map((s,i)=>(
-              <div key={i} className="text-center">
-                <div className="text-2xl font-black">{s.emoji} {s.val}</div>
-                <div className={`text-xs font-medium mt-0.5 ${T.muted}`}>{s.label}</div>
-              </div>
-            ))}
-          </div>
+          
+          <motion.div 
+            style={{ scale: sScale, rotateX: sRotateX, opacity: sOpacity, y: sY, filter: sFilter }}
+            className="relative w-full max-w-4xl mx-auto px-6 md:px-10 text-center flex flex-col items-center origin-center"
+          >
+            {/* Badge */}
+            <div className={`inline-flex items-center gap-2 border rounded-full px-4 py-1.5 text-xs font-bold mb-6 ${d?'bg-indigo-500/10 border-indigo-500/20 text-indigo-300':'bg-indigo-50 border-indigo-200 text-indigo-600'}`}>
+              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"/>
+              Startup Idea Validator · Vibeathon 2026
+            </div>
+            {/* Headline */}
+            <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-tight mb-4">
+              <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">Validate.</span>{' '}
+              <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Compare.</span>{' '}
+              <span className={d?'text-white':'text-zinc-900'}>Ship.</span>
+            </h1>
+            <p className={`text-base md:text-lg max-w-xl mx-auto mb-8 leading-relaxed ${T.sub}`}>
+              Submit your startup idea, discover what others are building, and find your next big opportunity — all in one place.
+            </p>
+            {/* CTA */}
+            <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
+              <button onClick={()=>{setShowForm(true);setFormError('');setFormSuccess(false);}}
+                className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold px-6 py-3 rounded-2xl transition-all active:scale-95 shadow-xl shadow-indigo-500/25 text-sm">
+                <Ic.Plus/> Submit Your Idea
+                <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${d?'bg-white/15':'bg-white/40'}`}>N</span>
+              </button>
+              <button onClick={()=>searchRef.current?.focus()}
+                className={`flex items-center gap-2 border font-semibold px-6 py-3 rounded-2xl transition-all text-sm ${d?'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10':'bg-white border-gray-200 text-zinc-700 hover:border-gray-300 shadow-sm'}`}>
+                <Ic.Search/> Browse Ideas
+                <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${d?'bg-white/10':'bg-gray-100'}`}>/</span>
+              </button>
+            </div>
+            {/* Live stats strip */}
+            <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
+              {[
+                {emoji:'📊', val:stats.total,       label:'Ideas Submitted'},
+                {emoji:'🏆', val:stats.topCat,      label:'Top Category'},
+                {emoji:'⚙️', val:stats.avgDiff!=='—'?stats.avgDiff+'/5':'—', label:'Avg Difficulty'},
+                {emoji:'⭐', val:stats.avgScore!=='—'?stats.avgScore+' pts':'—', label:'Avg Popularity'},
+              ].map((s,i)=>(
+                <div key={i} className="text-center">
+                  <div className="text-2xl font-black">{s.emoji} {s.val}</div>
+                  <div className={`text-xs font-medium mt-0.5 ${T.muted}`}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
         </div>
       </section>
       </>
