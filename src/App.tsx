@@ -329,24 +329,64 @@ export default function App() {
 
       {/* Navbar */}
       <nav className={`border-b sticky top-0 z-40 backdrop-blur-xl transition-colors ${T.nav}`}>
-        <div className="px-5 md:px-8 h-14 flex items-center gap-4">
-          <button onClick={()=>setSidebarOpen(!sidebarOpen)} className={`p-2 rounded-lg border transition-all ${T.iconBtn}`}><Ic.Menu/></button>
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25 text-xs">💡</div>
-            <span className="font-black text-base tracking-tight bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">IdeaVault</span>
+        <div className="px-5 md:px-8 h-16 flex items-center gap-3">
+
+          {/* Left: sidebar toggle + brand */}
+          <button onClick={()=>setSidebarOpen(!sidebarOpen)}
+            className={`p-2 rounded-xl border transition-all shrink-0 ${T.iconBtn}`}>
+            <Ic.Menu/>
+          </button>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 text-sm select-none">💡</div>
+            <div className="hidden sm:block">
+              <span className="font-black text-[17px] tracking-tight bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">IdeaVault</span>
+            </div>
           </div>
-          {/* Search bar in nav */}
-          <div className="relative flex-1 max-w-lg hidden md:block">
-            <span className={`absolute left-3 top-1/2 -translate-y-1/2 ${T.muted}`}><Ic.Search/></span>
-            <input ref={searchRef} type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search ideas… ( / )"
-              className={`w-full border rounded-xl py-2 pl-9 pr-4 text-sm outline-none transition-all ${T.inp}`}/>
+
+          {/* Center: nav links */}
+          <div className="hidden lg:flex items-center gap-1 ml-4">
+            {[
+              {label:'Dashboard', action:()=>setSortBy('newest'),   active: sortBy==='newest'},
+              {label:'🔥 Trending', action:()=>setSortBy('trending'), active: sortBy==='trending'},
+              {label:'⭐ Popular',  action:()=>setSortBy('popular'),  active: sortBy==='popular'},
+              {label:'✅ Easiest',  action:()=>setSortBy('easiest'),  active: sortBy==='easiest'},
+            ].map(({label,action,active})=>(
+              <button key={label} onClick={action}
+                className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all ${active?(d?'bg-indigo-600/20 text-indigo-300':'bg-indigo-50 text-indigo-700'):(d?'text-zinc-400 hover:text-white hover:bg-white/5':'text-zinc-500 hover:text-zinc-900 hover:bg-gray-100')}`}>
+                {label}
+              </button>
+            ))}
           </div>
-          <div className="flex items-center gap-1.5 ml-auto">
-            <button onClick={()=>exportCSV(filtered)} title="Export CSV" className={`p-2 rounded-lg border transition-all hidden md:flex ${T.iconBtn}`}><Ic.DL/></button>
-            <button onClick={()=>setDark(!d)} className={`p-2 rounded-lg border transition-all ${T.iconBtn}`}>{d?<Ic.Sun/>:<Ic.Moon/>}</button>
+
+          {/* Center: search bar */}
+          <div className="relative flex-1 max-w-md mx-auto hidden md:block">
+            <span className={`absolute left-3.5 top-1/2 -translate-y-1/2 ${T.muted}`}><Ic.Search/></span>
+            <input ref={searchRef} type="text" value={search} onChange={e=>setSearch(e.target.value)}
+              placeholder="Search ideas…"
+              className={`w-full border rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none transition-all ${T.inp}`}/>
+            {search && (
+              <button onClick={()=>setSearch('')} className={`absolute right-3 top-1/2 -translate-y-1/2 ${T.muted} hover:text-red-400 transition-colors`}><Ic.X/></button>
+            )}
+          </div>
+
+          {/* Right: actions */}
+          <div className="flex items-center gap-2 ml-auto">
+            {/* Ideas count badge */}
+            <div className={`hidden md:flex items-center gap-1.5 text-xs font-bold border rounded-full px-3 py-1.5 ${d?'bg-white/5 border-white/10 text-zinc-400':'bg-gray-100 border-gray-200 text-zinc-500'}`}>
+              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"/>
+              {ideas.length} ideas
+            </div>
+            <button onClick={()=>exportCSV(filtered)} title="Export CSV"
+              className={`p-2.5 rounded-xl border transition-all hidden md:flex ${T.iconBtn}`}><Ic.DL/>
+            </button>
+            <button onClick={()=>setDark(!d)}
+              className={`p-2.5 rounded-xl border transition-all ${T.iconBtn}`}>
+              {d?<Ic.Sun/>:<Ic.Moon/>}
+            </button>
             <button onClick={()=>{setShowForm(true);setFormError('');setFormSuccess(false);}}
-              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-500/20">
-              <Ic.Plus/> <span className="hidden sm:inline">Submit</span>
+              className="flex items-center gap-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-500/20">
+              <Ic.Plus/>
+              <span className="hidden sm:inline">Submit Idea</span>
             </button>
           </div>
         </div>
@@ -404,6 +444,63 @@ export default function App() {
           </div>
         </div>
       </section>
+
+      {/* ── Trending Section ── */}
+      {(() => {
+        const hot = [...ideas].sort((a,b) => b.upvotes - a.upvotes).filter(i => i.upvotes > 0).slice(0, 6);
+        if (!hot.length) return null;
+        return (
+          <div className={`border-b px-5 md:px-8 py-5 ${T.div} ${d?'bg-gradient-to-r from-amber-500/[0.04] to-orange-500/[0.03]':'bg-gradient-to-r from-amber-50/80 to-orange-50/60'}`}>
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-base">🔥</span>
+              <span className={`text-xs font-black uppercase tracking-widest text-amber-500`}>Trending Now</span>
+              <span className={`text-[11px] ${T.muted}`}>— most upvoted ideas this session</span>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+              {hot.map((idea, idx) => {
+                const score = getScore(idea);
+                const dc = DC[idea.difficulty];
+                const sc = SC[idea.stage];
+                return (
+                  <div key={idea.id}
+                    onClick={() => { setExpandedId(idea.id); document.getElementById('idea-'+idea.id)?.scrollIntoView({behavior:'smooth',block:'center'}); }}
+                    className={`shrink-0 w-64 border rounded-2xl p-4 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 ${d?'bg-white/[0.04] border-white/10 hover:border-amber-500/30':'bg-white border-gray-100 hover:border-amber-300 shadow-sm hover:shadow-md'}`}
+                    style={{animation:`fadeUp .3s ease-out ${idx*60}ms both`}}>
+                    {/* Rank + score */}
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className={`text-xs font-black ${idx===0?'text-amber-400':idx===1?'text-zinc-300':idx===2?'text-amber-700/80':'text-zinc-500'}`}>
+                        #{idx+1} {idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':''}
+                      </span>
+                      <div className="flex items-center gap-1 text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-2 py-0.5">
+                        <Ic.Star/><span className="text-[11px] font-black">{score} pts</span>
+                      </div>
+                    </div>
+                    <p className="font-bold text-sm leading-snug mb-1.5 line-clamp-1">{idea.title}</p>
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <span style={{color:sc.dot}} className="text-[10px]">●</span>
+                      <span className={`text-[10px] font-semibold ${sc.color}`}>{idea.stage}</span>
+                      <span className={`text-[10px] ${T.muted}`}>· {idea.category}</span>
+                    </div>
+                    {/* Difficulty bar */}
+                    <div className={`h-1 w-full rounded-full overflow-hidden ${T.pbar}`}>
+                      <div className="h-full rounded-full" style={{width:`${idea.difficulty/5*100}%`,backgroundColor:dc.bar}}/>
+                    </div>
+                    {/* Footer */}
+                    <div className={`flex items-center justify-between mt-3 pt-3 border-t ${T.div}`}>
+                      <span className={`text-[11px] ${T.muted}`}>{idea.market_potential} market</span>
+                      <button
+                        onClick={e => handleUpvote(idea.id, idea.upvotes, e)}
+                        className={`flex items-center gap-1 text-[11px] font-black border px-2.5 py-1 rounded-lg transition-all active:scale-95 ${T.upvote}`}>
+                        <Ic.Up/> {idea.upvotes}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="flex min-h-[calc(100vh-56px)]">
         {/* Sidebar — Filters only */}
