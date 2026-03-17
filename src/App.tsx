@@ -352,54 +352,87 @@ export default function App() {
         </div>
       </nav>
 
+      {/* ── Hero Section ── */}
+      <section className={`relative overflow-hidden border-b ${T.div}`}>
+        {/* Hero background gradient mesh */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className={`absolute inset-0 ${d?'bg-gradient-to-br from-indigo-950/60 via-[#080810] to-purple-950/40':'bg-gradient-to-br from-indigo-50 via-white to-purple-50'}`}/>
+          <div className="absolute top-0 left-1/4 w-[500px] h-[300px] bg-indigo-500/10 rounded-full blur-3xl"/>
+          <div className="absolute top-0 right-1/4 w-[400px] h-[250px] bg-purple-500/8 rounded-full blur-3xl"/>
+        </div>
+        <div className="relative max-w-4xl mx-auto px-6 md:px-10 py-16 md:py-20 text-center">
+          {/* Badge */}
+          <div className={`inline-flex items-center gap-2 border rounded-full px-4 py-1.5 text-xs font-bold mb-6 ${d?'bg-indigo-500/10 border-indigo-500/20 text-indigo-300':'bg-indigo-50 border-indigo-200 text-indigo-600'}`}>
+            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"/>
+            Startup Idea Validator · Vibeathon 2026
+          </div>
+          {/* Headline */}
+          <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-tight mb-4">
+            <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">Validate.</span>{' '}
+            <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Compare.</span>{' '}
+            <span className={d?'text-white':'text-zinc-900'}>Ship.</span>
+          </h1>
+          <p className={`text-base md:text-lg max-w-xl mx-auto mb-8 leading-relaxed ${T.sub}`}>
+            Submit your startup idea, discover what others are building, and find your next big opportunity — all in one place.
+          </p>
+          {/* CTA */}
+          <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
+            <button onClick={()=>{setShowForm(true);setFormError('');setFormSuccess(false);}}
+              className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold px-6 py-3 rounded-2xl transition-all active:scale-95 shadow-xl shadow-indigo-500/25 text-sm">
+              <Ic.Plus/> Submit Your Idea
+              <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${d?'bg-white/15':'bg-white/40'}`}>N</span>
+            </button>
+            <button onClick={()=>searchRef.current?.focus()}
+              className={`flex items-center gap-2 border font-semibold px-6 py-3 rounded-2xl transition-all text-sm ${d?'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10':'bg-white border-gray-200 text-zinc-700 hover:border-gray-300 shadow-sm'}`}>
+              <Ic.Search/> Browse Ideas
+              <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${d?'bg-white/10':'bg-gray-100'}`}>/</span>
+            </button>
+          </div>
+          {/* Live stats strip */}
+          <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
+            {[
+              {emoji:'📊', val:stats.total,       label:'Ideas Submitted'},
+              {emoji:'🏆', val:stats.topCat,      label:'Top Category'},
+              {emoji:'⚙️', val:stats.avgDiff!=='—'?stats.avgDiff+'/5':'—', label:'Avg Difficulty'},
+              {emoji:'⭐', val:stats.avgScore!=='—'?stats.avgScore+' pts':'—', label:'Avg Popularity'},
+            ].map((s,i)=>(
+              <div key={i} className="text-center">
+                <div className="text-2xl font-black">{s.emoji} {s.val}</div>
+                <div className={`text-xs font-medium mt-0.5 ${T.muted}`}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <div className="flex min-h-[calc(100vh-56px)]">
-        {/* Sidebar */}
-        <aside className={`shrink-0 border-r transition-all duration-300 overflow-hidden ${T.sidebar} ${T.div} ${sidebarOpen?'w-64':'w-0'}`}>
-          <div className="w-64 p-5 space-y-6 overflow-y-auto max-h-[calc(100vh-56px)] sticky top-14">
-
-            {/* Stats */}
-            <div>
-              <p className={`text-[10px] font-black uppercase tracking-widest mb-3 ${T.muted}`}>Overview</p>
-              <div className="grid grid-cols-2 gap-2">
-                {[{label:'Ideas',val:stats.total},{label:'Top Cat.',val:stats.topCat},{label:'Avg Diff',val:stats.avgDiff!=='—'?`${stats.avgDiff}/5`:'—'},{label:'Avg Score',val:stats.avgScore!=='—'?`${stats.avgScore}pts`:'—'}].map((s,i)=>(
-                  <div key={i} className={`border rounded-xl p-3 ${d?'bg-white/[0.03] border-white/[0.07]':'bg-gray-50 border-gray-100'}`}>
-                    <div className="text-base font-black">{s.val}</div>
-                    <div className={`text-[10px] ${T.muted}`}>{s.label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Top Idea */}
-            {stats.topIdea&&(
-              <div className={`border rounded-xl p-3 space-y-1 ${d?'bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border-indigo-500/20':'bg-indigo-50 border-indigo-100'}`}>
-                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">⭐ Top Idea</p>
-                <p className="text-sm font-bold line-clamp-2">{stats.topIdea.title}</p>
-                <p className="text-xs text-indigo-400 font-bold">{getScore(stats.topIdea)} pts · {stats.topIdea.upvotes} votes</p>
-              </div>
-            )}
+        {/* Sidebar — Filters only */}
+        <aside className={`shrink-0 border-r transition-all duration-300 overflow-hidden ${T.sidebar} ${T.div} ${sidebarOpen?'w-60':'w-0'}`}>
+          <div className="w-60 p-5 space-y-5 overflow-y-auto max-h-[calc(100vh-56px)] sticky top-14">
 
             {/* Category breakdown */}
             <div>
               <p className={`text-[10px] font-black uppercase tracking-widest mb-3 ${T.muted}`}>By Category</p>
               <div className="space-y-2">
-                {catBreakdown.slice(0,6).map(({cat,count,pct,color})=>(
-                  <button key={cat} onClick={()=>setFilterCat(filterCat===cat?'All':cat)} className="w-full text-left">
+                {catBreakdown.map(({cat,count,pct,color})=>(
+                  <button key={cat} onClick={()=>setFilterCat(filterCat===cat?'All':cat)} className="w-full text-left group">
                     <div className="flex items-center justify-between mb-1">
-                      <span className={`text-xs font-medium ${filterCat===cat?'text-white font-bold':T.sub}`}>{CAT_EMOJI[cat]} {cat}</span>
+                      <span className={`text-xs font-medium transition-colors ${filterCat===cat?'text-white font-bold':T.sub} group-hover:text-white`}>{CAT_EMOJI[cat]} {cat}</span>
                       <span className={`text-[10px] font-bold ${T.muted}`}>{count}</span>
                     </div>
                     <div className={`h-1 rounded-full overflow-hidden ${T.pbar}`}>
-                      <div className="h-full rounded-full transition-all" style={{width:`${pct}%`,backgroundColor:color,opacity:filterCat===cat?1:.6}}/>
+                      <div className="h-full rounded-full transition-all" style={{width:`${pct}%`,backgroundColor:color,opacity:filterCat===cat?1:.55}}/>
                     </div>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Filters */}
+            {/* Filter dropdowns */}
             <div className="space-y-2">
-              <p className={`text-[10px] font-black uppercase tracking-widest ${T.muted}`}>Filters {activeFilterCount>0&&<span className="text-indigo-400">({activeFilterCount})</span>}</p>
+              <p className={`text-[10px] font-black uppercase tracking-widest ${T.muted}`}>
+                Filters {activeFilterCount>0&&<span className="text-indigo-400">({activeFilterCount} active)</span>}
+              </p>
               <Dropdown label="Market Potential" value={filterMarket} options={[...MARKET_OPTIONS]} onChange={setFilterMarket} dark={d}/>
               <Dropdown label="Stage" value={filterStage} options={[...STAGES]} onChange={setFilterStage} dark={d}/>
               <Dropdown label="Difficulty" value={filterDiff!=='All'?`${filterDiff} – ${DC[parseInt(filterDiff)]?.label||''}`:filterDiff}
@@ -412,25 +445,6 @@ export default function App() {
                 </button>
               )}
             </div>
-
-            {/* Hottest ideas (sidebar) */}
-            {ideas.filter(i=>i.upvotes>0).length>0&&(
-              <div>
-                <p className={`text-[10px] font-black uppercase tracking-widest mb-2.5 text-amber-500`}>🔥 Trending</p>
-                <div className="space-y-2">
-                  {[...ideas].sort((a,b)=>b.upvotes-a.upvotes).slice(0,4).map(i=>(
-                    <button key={i.id} onClick={()=>setExpandedId(i.id)} className={`w-full text-left border rounded-xl px-3 py-2.5 text-xs transition-all ${d?'bg-white/[0.03] border-white/[0.07] hover:border-amber-500/30':'bg-gray-50 border-gray-100 hover:border-amber-200'}`}>
-                      <p className="font-semibold truncate">{i.title}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span style={{color:SC[i.stage].dot}}>●</span>
-                        <span className={T.muted}>{i.stage}</span>
-                        <span className="text-amber-500 flex items-center gap-0.5 ml-auto"><Ic.Up/>{i.upvotes}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </aside>
 
