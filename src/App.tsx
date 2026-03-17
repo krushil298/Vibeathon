@@ -323,14 +323,24 @@ export default function App() {
   async function handleView(id:string){
     if (expandedId === id) { setExpandedId(null); return; }
     setExpandedId(id);
+    // Optimistic update
     setIdeas(p=>p.map(i=>i.id===id?{...i,views:(i.views||0)+1}:i));
-    await supabase.rpc('increment_view_count', { idea_id: id });
+    // Try RPC first, fall back to direct update
+    const {error} = await supabase.rpc('increment_view_count', { idea_id: id });
+    if (error) {
+      // Fallback: fetch current view count then update
+      const {data} = await supabase.from('startup_ideas').select('views').eq('id', id).single();
+      await supabase.from('startup_ideas').update({ views: (data?.views || 0) + 1 }).eq('id', id);
+    }
   }
 
   async function handleUpvote(id:string,cur:number,e:React.MouseEvent){
     e.stopPropagation();
     setIdeas(p=>p.map(i=>i.id===id?{...i,upvotes:cur+1}:i));
-    await supabase.rpc('increment_upvote', { idea_id: id });
+    const {error} = await supabase.rpc('increment_upvote', { idea_id: id });
+    if (error) {
+      await supabase.from('startup_ideas').update({ upvotes: cur + 1 }).eq('id', id);
+    }
   }
 
   function copyLink(idea:Idea,e:React.MouseEvent){
