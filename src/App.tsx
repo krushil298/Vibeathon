@@ -200,7 +200,7 @@ export default function App() {
     const map: Record<string, number> = {};
     ideas.forEach(i => { map[i.category] = (map[i.category] || 0) + 1; });
     const max = Math.max(...Object.values(map), 1);
-    return Object.entries(map).sort((a, b) => b[1] - a[1]).map(([cat, count], idx) => ({ cat, count, pct: (count / max) * 100, color: CAT_COLORS[CATEGORIES.indexOf(cat) % CAT_COLORS.length] }));
+    return Object.entries(map).sort((a, b) => b[1] - a[1]).map(([cat, count]) => ({ cat, count, pct: (count / max) * 100, color: CAT_COLORS[CATEGORIES.indexOf(cat) % CAT_COLORS.length] }));
   }, [ideas]);
 
   const trending = useMemo(() => [...ideas].sort((a, b) => b.upvotes - a.upvotes).filter(i => i.upvotes > 0).slice(0, 3), [ideas]);
