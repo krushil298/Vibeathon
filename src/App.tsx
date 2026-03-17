@@ -425,6 +425,11 @@ export default function App() {
             <button onClick={e=>handleUpvote(idea.id,idea.upvotes,e)} className={`flex items-center gap-1 border text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-all active:scale-95 ${T.upvote}`}>
               <Ic.Up/> {idea.upvotes>0?idea.upvotes:'Vote'}
             </button>
+            {isOwner && (
+              <button onClick={handleEdit} className={`flex items-center gap-1 border text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-all active:scale-95 ${d?'border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10':'border-indigo-200 text-indigo-600 hover:bg-indigo-50'}`}>
+                ✏️ Edit
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -443,8 +448,15 @@ export default function App() {
             </div>
             <h3 className="font-bold text-[15px] leading-snug">{idea.title}</h3>
           </div>
-          <div className="flex flex-col items-center bg-amber-500/10 border border-amber-500/20 rounded-xl px-2.5 py-1.5 shrink-0">
-            <Ic.Star/><span className="text-amber-400 text-sm font-black leading-tight">{score}</span>
+          <div className="flex flex-col items-center shrink-0 gap-1.5">
+            <div className="flex items-center bg-amber-500/10 border border-amber-500/20 rounded-xl px-2.5 py-1.5">
+              <Ic.Star/><span className="text-amber-400 text-sm font-black leading-tight ml-1.5">{score}</span>
+            </div>
+            {expanded && (
+              <div className="flex items-center bg-indigo-500/5 text-indigo-400/80 border border-indigo-500/20 rounded-lg px-2 py-1" title="Views">
+                <Ic.List/><span className="text-[10px] font-bold ml-1">{idea.views || 0}</span>
+              </div>
+            )}
           </div>
         </div>
         <p className={`text-sm leading-relaxed line-clamp-2 ${T.sub}`}>{idea.description}</p>
@@ -997,9 +1009,9 @@ export default function App() {
           <div className={`relative border rounded-t-3xl md:rounded-3xl p-6 md:p-8 w-full max-w-2xl max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom-4 md:zoom-in-95 duration-300 ${T.modal}`}>
             {formSuccess?(
               <div className="text-center py-16 animate-in zoom-in duration-300">
-                <div className="text-6xl mb-4">🎉</div>
-                <h2 className="text-2xl font-black mb-2">Idea Submitted!</h2>
-                <p className={T.muted}>Your startup idea is now live on the dashboard.</p>
+                <div className="text-6xl mb-4">{editingIdea ? '✅' : '🎉'}</div>
+                <h2 className="text-2xl font-black mb-2">{editingIdea ? 'Idea Updated!' : 'Idea Submitted!'}</h2>
+                <p className={T.muted}>{editingIdea ? 'Your startup idea has been successfully updated.' : 'Your startup idea is now live on the dashboard.'}</p>
               </div>
             ):(
               <>
