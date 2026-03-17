@@ -4,7 +4,8 @@ import { supabase } from './supabase';
 // --- Types ---
 type MarketPotential = 'Low' | 'Medium' | 'High' | 'Very High';
 type Stage = 'Concept' | 'Early Stage' | 'MVP' | 'Growth';
-type SortMode = 'newest' | 'popular' | 'trending';
+type SortMode = 'newest' | 'popular' | 'trending' | 'easiest';
+type ViewMode = 'grid' | 'list';
 type Idea = {
   id: string; title: string; description: string; problem_statement: string;
   category: string; difficulty: number; market_potential: MarketPotential;
@@ -12,546 +13,545 @@ type Idea = {
   upvotes: number; created_at: string;
 };
 
-// --- Constants ---
-const CATEGORIES = ['FinTech', 'HealthTech', 'EdTech', 'E-Commerce', 'AI/ML', 'SaaS', 'GreenTech', 'Social', 'Gaming', 'Other'];
-const MARKET_OPTIONS: MarketPotential[] = ['Low', 'Medium', 'High', 'Very High'];
-const STAGES: Stage[] = ['Concept', 'Early Stage', 'MVP', 'Growth'];
-const REVENUE_MODELS = ['SaaS', 'Marketplace', 'Freemium', 'Subscription', 'Ad-based', 'E-commerce', 'Consulting', 'Other'];
-const DIFFICULTY_LABELS: Record<number, string> = { 1: 'Easy', 2: 'Moderate', 3: 'Hard', 4: 'Very Hard', 5: 'Extreme' };
-const MARKET_WEIGHT: Record<string, number> = { 'Low': 1, 'Medium': 2, 'High': 3, 'Very High': 4 };
+const CATEGORIES = ['FinTech','HealthTech','EdTech','E-Commerce','AI/ML','SaaS','GreenTech','Social','Gaming','Other'];
+const MARKET_OPTIONS: MarketPotential[] = ['Low','Medium','High','Very High'];
+const STAGES: Stage[] = ['Concept','Early Stage','MVP','Growth'];
+const REVENUE_MODELS = ['SaaS','Marketplace','Freemium','Subscription','Ad-based','E-commerce','Consulting','Other'];
+const MARKET_WEIGHT: Record<string,number> = {'Low':1,'Medium':2,'High':3,'Very High':4};
 const CAT_COLORS = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#3b82f6','#14b8a6','#f97316','#ef4444','#6b7280'];
+const CAT_EMOJI: Record<string,string> = {'FinTech':'💳','HealthTech':'🏥','EdTech':'📚','E-Commerce':'🛒','AI/ML':'🤖','SaaS':'☁️','GreenTech':'🌱','Social':'👥','Gaming':'🎮','Other':'💡'};
 
-const DIFF_CFG: Record<number, { bar: string; glow: string; text: string; bg: string }> = {
-  1: { bar: '#10b981', glow: 'rgba(16,185,129,.15)', text: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-  2: { bar: '#3b82f6', glow: 'rgba(59,130,246,.15)', text: 'text-blue-400',    bg: 'bg-blue-500/10' },
-  3: { bar: '#f59e0b', glow: 'rgba(245,158,11,.15)', text: 'text-amber-400',   bg: 'bg-amber-500/10' },
-  4: { bar: '#f97316', glow: 'rgba(249,115,22,.15)', text: 'text-orange-400',  bg: 'bg-orange-500/10' },
-  5: { bar: '#ef4444', glow: 'rgba(239,68,68,.15)',  text: 'text-red-400',     bg: 'bg-red-500/10' },
+const DC: Record<number,{bar:string;glow:string;text:string;bg:string;label:string}> = {
+  1:{bar:'#10b981',glow:'rgba(16,185,129,.2)',text:'text-emerald-400',bg:'bg-emerald-500/10',label:'Easy'},
+  2:{bar:'#3b82f6',glow:'rgba(59,130,246,.2)',text:'text-blue-400',bg:'bg-blue-500/10',label:'Moderate'},
+  3:{bar:'#f59e0b',glow:'rgba(245,158,11,.2)',text:'text-amber-400',bg:'bg-amber-500/10',label:'Hard'},
+  4:{bar:'#f97316',glow:'rgba(249,115,22,.2)',text:'text-orange-400',bg:'bg-orange-500/10',label:'Very Hard'},
+  5:{bar:'#ef4444',glow:'rgba(239,68,68,.2)',text:'text-red-400',bg:'bg-red-500/10',label:'Extreme'},
 };
-const MKT_CFG: Record<string, { text: string; bg: string }> = {
-  'Low':       { text: 'text-zinc-400',   bg: 'bg-zinc-400/10' },
-  'Medium':    { text: 'text-blue-400',   bg: 'bg-blue-400/10' },
-  'High':      { text: 'text-violet-400', bg: 'bg-violet-400/10' },
-  'Very High': { text: 'text-indigo-400', bg: 'bg-indigo-400/10' },
+const MC: Record<string,{text:string;bg:string}> = {
+  'Low':{text:'text-zinc-400',bg:'bg-zinc-400/10'},
+  'Medium':{text:'text-blue-400',bg:'bg-blue-400/10'},
+  'High':{text:'text-violet-400',bg:'bg-violet-400/10'},
+  'Very High':{text:'text-indigo-400',bg:'bg-indigo-400/10'},
 };
-const STAGE_CFG: Record<Stage, { color: string; dot: string; label: string }> = {
-  'Concept':     { color: 'text-zinc-400',   dot: '#71717a', label: '🌱' },
-  'Early Stage': { color: 'text-amber-400',  dot: '#f59e0b', label: '🔬' },
-  'MVP':         { color: 'text-blue-400',   dot: '#3b82f6', label: '🚀' },
-  'Growth':      { color: 'text-emerald-400',dot: '#10b981', label: '📈' },
+const SC: Record<Stage,{color:string;dot:string;emoji:string}> = {
+  'Concept':{color:'text-zinc-400',dot:'#71717a',emoji:'🌱'},
+  'Early Stage':{color:'text-amber-400',dot:'#f59e0b',emoji:'🔬'},
+  'MVP':{color:'text-blue-400',dot:'#3b82f6',emoji:'🚀'},
+  'Growth':{color:'text-emerald-400',dot:'#10b981',emoji:'📈'},
 };
 
-function getScore(idea: Idea) { return idea.upvotes * 2 + MARKET_WEIGHT[idea.market_potential] + (6 - idea.difficulty); }
+function getScore(i: Idea) { return i.upvotes * 2 + MARKET_WEIGHT[i.market_potential] + (6 - i.difficulty); }
 
 function exportCSV(ideas: Idea[]) {
-  const headers = ['Title','Category','Stage','Difficulty','Market Potential','Revenue Model','Target Audience','Upvotes','Popularity Score','Description','Problem Statement','Created'];
-  const rows = ideas.map(i => [i.title, i.category, i.stage, `${i.difficulty} - ${DIFFICULTY_LABELS[i.difficulty]}`, i.market_potential, i.revenue_model, i.target_audience, i.upvotes, getScore(i), `"${i.description.replace(/"/g,'""')}"`, `"${i.problem_statement.replace(/"/g,'""')}"`, new Date(i.created_at).toLocaleDateString()]);
-  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-  const a = Object.assign(document.createElement('a'), { href: url, download: 'ideavault-export.csv' });
-  a.click(); URL.revokeObjectURL(url);
+  const h = ['Title','Category','Stage','Difficulty','Market','Revenue Model','Target Audience','Upvotes','Score','Description','Problem'];
+  const rows = ideas.map(i => [i.title,i.category,i.stage,`${i.difficulty}-${DC[i.difficulty].label}`,i.market_potential,i.revenue_model,i.target_audience,i.upvotes,getScore(i),`"${i.description.replace(/"/g,'""')}"`,`"${i.problem_statement.replace(/"/g,'""')}"`]);
+  const csv = [h.join(','),...rows.map(r=>r.join(','))].join('\n');
+  const a = Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([csv],{type:'text/csv'})),download:'ideavault.csv'});
+  a.click();
 }
 
-// Confetti burst (no external dep)
 function confettiBurst() {
-  const canvas = document.createElement('canvas');
-  canvas.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:9999;';
-  document.body.appendChild(canvas);
-  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-  const ctx = canvas.getContext('2d')!;
-  const particles = Array.from({ length: 120 }, () => ({
-    x: Math.random() * canvas.width, y: -20,
-    vx: (Math.random() - 0.5) * 6, vy: Math.random() * 3 + 2,
-    color: ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981'][Math.floor(Math.random()*5)],
-    size: Math.random() * 7 + 3, rot: Math.random() * 360, rotV: (Math.random()-0.5)*6,
-    life: 1,
-  }));
-  let frame = 0;
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    particles.forEach(p => {
-      p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.rot += p.rotV; p.life -= 0.012;
-      ctx.save(); ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.color;
-      ctx.translate(p.x, p.y); ctx.rotate(p.rot * Math.PI/180);
-      ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size); ctx.restore();
-    });
-    if (++frame < 130) requestAnimationFrame(draw); else canvas.remove();
-  }
-  draw();
+  const c = document.createElement('canvas');
+  c.style.cssText='position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:9999;';
+  document.body.appendChild(c); c.width=innerWidth; c.height=innerHeight;
+  const ctx=c.getContext('2d')!;
+  const p=Array.from({length:100},()=>({x:Math.random()*c.width,y:-10,vx:(Math.random()-.5)*5,vy:Math.random()*3+2,color:['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981'][Math.floor(Math.random()*5)],s:Math.random()*7+3,r:Math.random()*360,rv:(Math.random()-.5)*6,life:1}));
+  let f=0;
+  (function draw(){ctx.clearRect(0,0,c.width,c.height);p.forEach(q=>{q.x+=q.vx;q.y+=q.vy;q.vy+=.08;q.r+=q.rv;q.life-=.013;ctx.save();ctx.globalAlpha=Math.max(0,q.life);ctx.fillStyle=q.color;ctx.translate(q.x,q.y);ctx.rotate(q.r*Math.PI/180);ctx.fillRect(-q.s/2,-q.s/2,q.s,q.s);ctx.restore();});if(++f<120)requestAnimationFrame(draw);else c.remove();})();
 }
 
-// --- Tiny Icons ---
-const I = {
-  Search: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>,
-  Plus:   () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>,
-  X:      () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>,
-  Up:     () => <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg>,
-  Star:   () => <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
-  Sun:    () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>,
-  Moon:   () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>,
-  Download:()=><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>,
-  Copy:   () => <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>,
-  Bar:    () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>,
-  Check:  () => <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>,
-  Keyboard:()=><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="2" y="6" width="20" height="12" rx="2"/><path strokeLinecap="round" d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h12"/></svg>,
+// Icons
+const Ic={
+  Search:()=><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>,
+  Plus:()=><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>,
+  X:()=><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>,
+  Up:()=><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg>,
+  Star:()=><svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
+  Sun:()=><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>,
+  Moon:()=><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>,
+  DL:()=><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>,
+  Copy:()=><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>,
+  Check:()=><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>,
+  Grid:()=><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
+  List:()=><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>,
+  Filter:()=><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 4h18M7 12h10M11 20h2"/></svg>,
+  Menu:()=><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>,
+  Chevron:({open}:{open:boolean})=><svg className={`w-3.5 h-3.5 transition-transform ${open?'rotate-180':''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>,
+  Bulb:()=><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>,
+  Flame:()=><svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C9.5 6 6 7.5 6 12a6 6 0 0012 0c0-3-1.5-5.5-3-7a11.3 11.3 0 01-1 5C12.5 8.5 12 5 12 2z"/></svg>,
 };
 
-export default function App() {
-  const [dark, setDark] = useState(true);
-  const [ideas, setIdeas] = useState<Idea[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [showAnalytics, setShowAnalytics] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState('');
-  const [formSuccess, setFormSuccess] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [filterCat, setFilterCat] = useState('All');
-  const [filterDiff, setFilterDiff] = useState('All');
-  const [filterMarket, setFilterMarket] = useState('All');
-  const [filterStage, setFilterStage] = useState('All');
-  const [sortBy, setSortBy] = useState<SortMode>('newest');
-  const searchRef = useRef<HTMLInputElement>(null);
-
-  const [form, setForm] = useState({
-    title: '', description: '', problem_statement: '', target_audience: '',
-    revenue_model: REVENUE_MODELS[0], category: CATEGORIES[0],
-    difficulty: 3, market_potential: 'High' as MarketPotential, stage: 'Concept' as Stage,
-  });
-
-  useEffect(() => { document.documentElement.classList.toggle('dark', dark); }, [dark]);
-  useEffect(() => { fetchIdeas(); }, []);
-
-  // Keyboard shortcut: N = new idea, / = search, Esc = close
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
-      if (e.key === 'n' || e.key === 'N') { setShowForm(true); setFormError(''); setFormSuccess(false); }
-      if (e.key === '/') { e.preventDefault(); searchRef.current?.focus(); }
-      if (e.key === 'Escape') { setShowForm(false); setShowAnalytics(false); }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
-
-  const fetchIdeas = useCallback(async () => {
-    setLoading(true);
-    const { data } = await supabase.from('startup_ideas').select('*').order('created_at', { ascending: false });
-    if (data) setIdeas(data as Idea[]);
-    setLoading(false);
-  }, []);
-
-  const ff = (k: string, v: string | number) => setForm(p => ({ ...p, [k]: v }));
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setFormError('');
-    if (!form.title.trim() || !form.description.trim() || !form.problem_statement.trim() || !form.target_audience.trim())
-      return setFormError('All starred fields are required.');
-    if (ideas.some(i => i.title.toLowerCase() === form.title.toLowerCase().trim()))
-      return setFormError('An idea with this title already exists.');
-    setSubmitting(true);
-    const { error } = await supabase.from('startup_ideas').insert([{ ...form, title: form.title.trim() }]);
-    setSubmitting(false);
-    if (error) return setFormError('Submission failed: ' + error.message);
-    setFormSuccess(true);
-    confettiBurst();
-    setForm({ title: '', description: '', problem_statement: '', target_audience: '', revenue_model: REVENUE_MODELS[0], category: CATEGORIES[0], difficulty: 3, market_potential: 'High', stage: 'Concept' });
-    fetchIdeas();
-    setTimeout(() => { setFormSuccess(false); setShowForm(false); }, 1800);
-  }
-
-  async function handleUpvote(id: string, cur: number, e: React.MouseEvent) {
-    e.stopPropagation();
-    setIdeas(p => p.map(i => i.id === id ? { ...i, upvotes: cur + 1 } : i));
-    await supabase.from('startup_ideas').update({ upvotes: cur + 1 }).eq('id', id);
-  }
-
-  function copyLink(idea: Idea, e: React.MouseEvent) {
-    e.stopPropagation();
-    navigator.clipboard.writeText(`${window.location.origin}?idea=${idea.id}`);
-    setCopiedId(idea.id);
-    setTimeout(() => setCopiedId(null), 1800);
-  }
-
-  const filtered = useMemo(() => {
-    let list = [...ideas];
-    if (sortBy === 'popular')  list = list.sort((a, b) => getScore(b) - getScore(a));
-    if (sortBy === 'trending') list = list.sort((a, b) => b.upvotes - a.upvotes);
-    if (search.trim()) list = list.filter(i => [i.title, i.description, i.category, i.target_audience, i.revenue_model].join(' ').toLowerCase().includes(search.toLowerCase()));
-    if (filterCat    !== 'All') list = list.filter(i => i.category === filterCat);
-    if (filterDiff   !== 'All') list = list.filter(i => i.difficulty === parseInt(filterDiff));
-    if (filterMarket !== 'All') list = list.filter(i => i.market_potential === filterMarket);
-    if (filterStage  !== 'All') list = list.filter(i => i.stage === filterStage);
-    return list;
-  }, [ideas, search, filterCat, filterDiff, filterMarket, filterStage, sortBy]);
-
-  const stats = useMemo(() => {
-    if (!ideas.length) return { total: 0, topCat: '—', avgDiff: '—', avgScore: '—', topScore: 0 };
-    const catCount: Record<string, number> = {};
-    let diffSum = 0, scoreSum = 0;
-    ideas.forEach(i => { catCount[i.category] = (catCount[i.category] || 0) + 1; diffSum += i.difficulty; scoreSum += getScore(i); });
-    return { total: ideas.length, topCat: Object.entries(catCount).sort((a, b) => b[1] - a[1])[0]?.[0] || '—', avgDiff: (diffSum / ideas.length).toFixed(1), avgScore: (scoreSum / ideas.length).toFixed(0), topScore: Math.max(...ideas.map(getScore)) };
-  }, [ideas]);
-
-  const analytics = useMemo(() => {
-    const map: Record<string, number> = {};
-    ideas.forEach(i => { map[i.category] = (map[i.category] || 0) + 1; });
-    const max = Math.max(...Object.values(map), 1);
-    return Object.entries(map).sort((a, b) => b[1] - a[1]).map(([cat, count]) => ({ cat, count, pct: (count / max) * 100, color: CAT_COLORS[CATEGORIES.indexOf(cat) % CAT_COLORS.length] }));
-  }, [ideas]);
-
-  const trending = useMemo(() => [...ideas].sort((a, b) => b.upvotes - a.upvotes).filter(i => i.upvotes > 0).slice(0, 3), [ideas]);
-  const anyFilter = filterCat !== 'All' || filterDiff !== 'All' || filterMarket !== 'All' || filterStage !== 'All' || search;
-
-  // Theme
-  const d = dark;
-  const T = {
-    page:       d ? 'bg-[#080810] text-zinc-100' : 'bg-slate-50 text-zinc-900',
-    glass:      d ? 'bg-white/[0.03] border-white/[0.07] backdrop-blur-xl' : 'bg-white/80 border-black/5 backdrop-blur-xl',
-    card:       d ? 'bg-white/[0.03] border-white/[0.07] hover:bg-white/[0.06] hover:border-white/[0.14]' : 'bg-white border-gray-100 hover:border-indigo-200 shadow-sm hover:shadow-md',
-    inp:        d ? 'bg-white/5 border-white/10 text-white placeholder:text-white/25 focus:border-indigo-500/60 focus:bg-white/8' : 'bg-white border-gray-200 text-zinc-900 placeholder:text-zinc-400 focus:border-indigo-400 focus:bg-indigo-50/50',
-    modal:      d ? 'bg-[#0e0e1a] border-white/10' : 'bg-white border-gray-200',
-    sub:        d ? 'text-zinc-400' : 'text-zinc-500',
-    muted:      d ? 'text-zinc-500' : 'text-zinc-400',
-    divider:    d ? 'border-white/[0.07]' : 'border-gray-100',
-    pill:       d ? 'bg-white/[0.04] border-white/[0.08] text-zinc-400 hover:border-indigo-500/40 hover:text-white hover:bg-white/[0.07]' : 'bg-gray-100 border-transparent text-zinc-500 hover:border-indigo-300 hover:text-zinc-900 hover:bg-indigo-50',
-    pillOn:     'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-500/25',
-    toggle:     d ? 'bg-white/[0.06] hover:bg-white/[0.10] text-amber-300' : 'bg-gray-100 hover:bg-gray-200 text-indigo-600',
-    upvote:     d ? 'bg-white/5 border-white/10 text-zinc-400 hover:bg-indigo-500/10 hover:border-indigo-500/40 hover:text-indigo-300' : 'bg-gray-50 border-gray-200 text-zinc-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600',
-    pbar:       d ? 'bg-white/8' : 'bg-gray-100',
-    skeleton:   d ? 'bg-white/[0.03] border-white/[0.07]' : 'bg-white border-gray-100 shadow-sm',
-    sortbox:    d ? 'bg-white/[0.04] border-white/[0.08]' : 'bg-white border-gray-200',
-  };
-  const inputCls = `w-full border rounded-xl px-4 py-2.5 text-sm outline-none transition-all ${T.inp}`;
-  const taCls = `${inputCls} resize-none`;
-  const selCls = `${inputCls} cursor-pointer`;
-
-  const PillFilter = ({ label, values, current, onChange }: { label: string; values: string[]; current: string; onChange: (v: string) => void }) => (
-    <div className="flex flex-wrap gap-1.5 items-center">
-      <span className={`text-[11px] font-bold uppercase tracking-widest mr-0.5 shrink-0 ${T.muted}`}>{label}</span>
-      {values.map(v => (
-        <button key={v} onClick={() => onChange(current === v ? 'All' : v)}
-          className={`px-2.5 py-0.5 text-[11px] font-semibold border rounded-full transition-all ${current === v ? T.pillOn : T.pill}`}>
-          {v}
-        </button>
-      ))}
+// --- Dropdown Component ---
+function Dropdown({label,value,options,onChange,dark}:{label:string;value:string;options:string[];onChange:(v:string)=>void;dark:boolean}) {
+  const [open,setOpen]=useState(false);
+  const ref=useRef<HTMLDivElement>(null);
+  useEffect(()=>{
+    const h=(e:MouseEvent)=>{if(ref.current && !ref.current.contains(e.target as Node))setOpen(false);};
+    document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h);
+  },[]);
+  const sel=value!=='All';
+  return(
+    <div ref={ref} className="relative w-full">
+      <button onClick={()=>setOpen(!open)}
+        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl border text-sm font-medium transition-all ${sel?(dark?'bg-indigo-600/20 border-indigo-500/40 text-indigo-300':'bg-indigo-50 border-indigo-300 text-indigo-700'):(dark?'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20':'bg-gray-50 border-gray-200 text-zinc-600 hover:border-gray-300')}`}>
+        <span className="truncate">{sel?value:label}</span>
+        <Ic.Chevron open={open}/>
+      </button>
+      {open&&(
+        <div className={`absolute z-50 mt-1 w-full border rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 ${dark?'bg-zinc-900 border-white/10':'bg-white border-gray-200'}`}>
+          {['All',...options].map(opt=>(
+            <button key={opt} onClick={()=>{onChange(opt==='All'?'All':opt);setOpen(false);}}
+              className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${value===opt?(dark?'bg-indigo-600/20 text-indigo-300':'bg-indigo-50 text-indigo-700'):(dark?'text-zinc-300 hover:bg-white/5':'text-zinc-700 hover:bg-gray-50')}`}>
+              {opt==='All'?`All ${label}s`:opt}
+              {value===opt&&<Ic.Check/>}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
+}
 
-  return (
-    <div className={`min-h-screen font-[system-ui,sans-serif] transition-colors duration-300 ${T.page}`}>
-      {/* Ambient gradient blobs */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-indigo-600/8 rounded-full blur-3xl" />
-        <div className="absolute top-1/3 -right-32 w-[500px] h-[500px] bg-purple-600/6 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 left-1/3 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-3xl" />
-      </div>
+export default function App() {
+  const [dark,setDark]=useState(true);
+  const [ideas,setIdeas]=useState<Idea[]>([]);
+  const [loading,setLoading]=useState(true);
+  const [showForm,setShowForm]=useState(false);
+  const [submitting,setSubmitting]=useState(false);
+  const [formError,setFormError]=useState('');
+  const [formSuccess,setFormSuccess]=useState(false);
+  const [expandedId,setExpandedId]=useState<string|null>(null);
+  const [copiedId,setCopiedId]=useState<string|null>(null);
+  const [sidebarOpen,setSidebarOpen]=useState(true);
+  const [viewMode,setViewMode]=useState<ViewMode>('grid');
+  const [search,setSearch]=useState('');
+  const [filterCat,setFilterCat]=useState('All');
+  const [filterDiff,setFilterDiff]=useState('All');
+  const [filterMarket,setFilterMarket]=useState('All');
+  const [filterStage,setFilterStage]=useState('All');
+  const [filterRevenue,setFilterRevenue]=useState('All');
+  const [sortBy,setSortBy]=useState<SortMode>('trending');
+  const searchRef=useRef<HTMLInputElement>(null);
+  const [form,setForm]=useState({title:'',description:'',problem_statement:'',target_audience:'',revenue_model:REVENUE_MODELS[0],category:CATEGORIES[0],difficulty:3,market_potential:'High' as MarketPotential,stage:'Concept' as Stage});
 
-      {/* Header */}
-      <header className={`border-b sticky top-0 z-40 transition-colors duration-300 ${T.glass}`}>
-        <div className="max-w-6xl mx-auto px-5 md:px-10 h-14 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 text-xs">💡</div>
-            <span className="font-black text-base tracking-tight bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">IdeaVault</span>
-            <span className={`hidden md:flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border font-medium ${T.glass} ${T.muted}`}>
-              <I.Keyboard /> Press N
-            </span>
+  useEffect(()=>{document.documentElement.classList.toggle('dark',dark);},[dark]);
+  useEffect(()=>{fetchIdeas();},[]);
+
+  useEffect(()=>{
+    const h=(e:KeyboardEvent)=>{
+      if(e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement||e.target instanceof HTMLSelectElement)return;
+      if(e.key==='n'||e.key==='N'){setShowForm(true);setFormError('');setFormSuccess(false);}
+      if(e.key==='/'){{e.preventDefault();searchRef.current?.focus();}}
+      if(e.key==='Escape'){setShowForm(false);setExpandedId(null);}
+    };
+    window.addEventListener('keydown',h);return()=>window.removeEventListener('keydown',h);
+  },[]);
+
+  const fetchIdeas=useCallback(async()=>{
+    setLoading(true);
+    const {data}=await supabase.from('startup_ideas').select('*').order('created_at',{ascending:false});
+    if(data)setIdeas(data as Idea[]);
+    setLoading(false);
+  },[]);
+
+  const ff=(k:string,v:string|number)=>setForm(p=>({...p,[k]:v}));
+
+  async function handleSubmit(e:React.FormEvent){
+    e.preventDefault();setFormError('');
+    if(!form.title.trim()||!form.description.trim()||!form.problem_statement.trim()||!form.target_audience.trim()) return setFormError('All starred fields are required.');
+    if(ideas.some(i=>i.title.toLowerCase()===form.title.toLowerCase().trim())) return setFormError('This title already exists.');
+    setSubmitting(true);
+    const {error}=await supabase.from('startup_ideas').insert([{...form,title:form.title.trim()}]);
+    setSubmitting(false);
+    if(error)return setFormError('Submission failed: '+error.message);
+    setFormSuccess(true);confettiBurst();
+    setForm({title:'',description:'',problem_statement:'',target_audience:'',revenue_model:REVENUE_MODELS[0],category:CATEGORIES[0],difficulty:3,market_potential:'High',stage:'Concept'});
+    fetchIdeas();setTimeout(()=>{setFormSuccess(false);setShowForm(false);},1800);
+  }
+
+  async function handleUpvote(id:string,cur:number,e:React.MouseEvent){
+    e.stopPropagation();
+    setIdeas(p=>p.map(i=>i.id===id?{...i,upvotes:cur+1}:i));
+    await supabase.from('startup_ideas').update({upvotes:cur+1}).eq('id',id);
+  }
+
+  function copyLink(idea:Idea,e:React.MouseEvent){
+    e.stopPropagation();
+    navigator.clipboard.writeText(`${window.location.origin}?idea=${idea.id}`);
+    setCopiedId(idea.id);setTimeout(()=>setCopiedId(null),1800);
+  }
+
+  const filtered=useMemo(()=>{
+    let list=[...ideas];
+    if(sortBy==='popular') list=list.sort((a,b)=>getScore(b)-getScore(a));
+    if(sortBy==='trending') list=list.sort((a,b)=>b.upvotes-a.upvotes);
+    if(sortBy==='easiest') list=list.sort((a,b)=>a.difficulty-b.difficulty);
+    if(search.trim()) list=list.filter(i=>[i.title,i.description,i.category,i.target_audience,i.revenue_model,i.stage].join(' ').toLowerCase().includes(search.toLowerCase()));
+    if(filterCat!=='All') list=list.filter(i=>i.category===filterCat);
+    if(filterDiff!=='All') list=list.filter(i=>i.difficulty===parseInt(filterDiff));
+    if(filterMarket!=='All') list=list.filter(i=>i.market_potential===filterMarket);
+    if(filterStage!=='All') list=list.filter(i=>i.stage===filterStage);
+    if(filterRevenue!=='All') list=list.filter(i=>i.revenue_model===filterRevenue);
+    return list;
+  },[ideas,search,filterCat,filterDiff,filterMarket,filterStage,filterRevenue,sortBy]);
+
+  const stats=useMemo(()=>{
+    if(!ideas.length)return{total:0,topCat:'—',avgDiff:'—',avgScore:'—',topIdea:null as Idea|null};
+    const cc:Record<string,number>={};let ds=0,ss=0;
+    ideas.forEach(i=>{cc[i.category]=(cc[i.category]||0)+1;ds+=i.difficulty;ss+=getScore(i);});
+    const topIdea=[...ideas].sort((a,b)=>getScore(b)-getScore(a))[0];
+    return{total:ideas.length,topCat:Object.entries(cc).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—',avgDiff:(ds/ideas.length).toFixed(1),avgScore:(ss/ideas.length).toFixed(0),topIdea};
+  },[ideas]);
+
+  const catBreakdown=useMemo(()=>{
+    const m:Record<string,number>={};ideas.forEach(i=>{m[i.category]=(m[i.category]||0)+1;});
+    const mx=Math.max(...Object.values(m),1);
+    return Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([cat,count])=>({cat,count,pct:(count/mx)*100,color:CAT_COLORS[CATEGORIES.indexOf(cat)%CAT_COLORS.length]}));
+  },[ideas]);
+
+  const anyFilter=filterCat!=='All'||filterDiff!=='All'||filterMarket!=='All'||filterStage!=='All'||filterRevenue!=='All'||search;
+  const activeFilterCount=[filterCat!=='All',filterDiff!=='All',filterMarket!=='All',filterStage!=='All',filterRevenue!=='All',!!search].filter(Boolean).length;
+
+  // Theme tokens
+  const d=dark;
+  const T={
+    page:    d?'bg-[#080810] text-zinc-100':'bg-slate-50 text-zinc-900',
+    nav:     d?'bg-[#080810]/95 border-white/[0.06]':'bg-white/95 border-black/5',
+    sidebar: d?'bg-[#0c0c18] border-white/[0.06]':'bg-white border-gray-100',
+    card:    d?'bg-white/[0.034] border-white/[0.07] hover:bg-white/[0.06] hover:border-indigo-500/30':'bg-white border-gray-100 hover:border-indigo-200 shadow-sm hover:shadow-md',
+    inp:     d?'bg-white/5 border-white/10 text-white placeholder:text-white/25 focus:border-indigo-500/50':'bg-white border-gray-200 text-zinc-900 placeholder:text-zinc-400 focus:border-indigo-400',
+    modal:   d?'bg-[#0e0e1c] border-white/10':'bg-white border-gray-200',
+    sub:     d?'text-zinc-400':'text-zinc-500',
+    muted:   d?'text-zinc-500':'text-zinc-400',
+    div:     d?'border-white/[0.06]':'border-gray-100',
+    iconBtn: d?'bg-white/5 border-white/10 hover:bg-white/10 text-zinc-400 hover:text-white':'bg-gray-100 border-transparent hover:bg-gray-200 text-zinc-500 hover:text-zinc-900',
+    upvote:  d?'bg-white/5 border-white/10 text-zinc-400 hover:bg-indigo-500/10 hover:border-indigo-500/40 hover:text-indigo-300':'bg-gray-50 border-gray-200 text-zinc-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600',
+    pbar:    d?'bg-white/8':'bg-gray-100',
+    skel:    d?'bg-white/[0.03] border-white/[0.07]':'bg-white border-gray-100 shadow-sm',
+  };
+  const inputCls=`w-full border rounded-xl px-4 py-2.5 text-sm outline-none transition-all ${T.inp}`;
+
+  function IdeaCard({idea}:{idea:Idea}) {
+    const score=getScore(idea); const dc=DC[idea.difficulty]; const mc=MC[idea.market_potential]; const sc=SC[idea.stage];
+    const expanded=expandedId===idea.id;
+    if(viewMode==='list') return(
+      <div onClick={()=>setExpandedId(expanded?null:idea.id)}
+        className={`group border rounded-xl px-5 py-4 flex items-center gap-4 cursor-pointer transition-all duration-200 hover:-translate-y-px ${T.card}`}
+        style={{animation:'fadeUp .25s ease-out both'}}>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-xs">{sc.emoji}</span>
+            <span className={`text-[10px] font-bold uppercase tracking-widest ${sc.color}`}>{idea.stage}</span>
+            <span className={`text-[10px] ${T.muted}`}>· {idea.category}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            {/* Keyboard hint */}
-            <button onClick={() => setShowAnalytics(!showAnalytics)} title="Analytics"
-              className={`p-2 rounded-lg transition-all active:scale-95 ${T.toggle}`}><I.Bar /></button>
-            <button onClick={() => exportCSV(ideas)} title="Export CSV"
-              className={`p-2 rounded-lg transition-all active:scale-95 ${T.toggle}`}><I.Download /></button>
-            <button onClick={() => setDark(!d)} title="Toggle theme"
-              className={`p-2 rounded-lg transition-all active:scale-95 ${T.toggle}`}>{d ? <I.Sun /> : <I.Moon />}</button>
-            <button onClick={() => { setShowForm(true); setFormError(''); setFormSuccess(false); }}
-              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-3.5 py-2 rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-500/20">
-              <I.Plus /> Submit
+          <p className="font-bold text-sm">{idea.title}</p>
+          <p className={`text-xs truncate mt-0.5 ${T.sub}`}>{idea.description}</p>
+        </div>
+        <div className="hidden md:flex items-center gap-3 shrink-0">
+          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${mc.bg} ${mc.text}`}>📈 {idea.market_potential}</span>
+          <div className="flex items-center gap-1 text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-2.5 py-1">
+            <Ic.Star/><span className="text-xs font-black">{score}</span>
+          </div>
+          <div className="flex gap-1.5" onClick={e=>e.stopPropagation()}>
+            <button onClick={e=>copyLink(idea,e)} className={`flex items-center gap-1 border text-[11px] font-semibold px-2.5 py-1.5 rounded-lg transition-all ${copiedId===idea.id?'bg-emerald-500/10 border-emerald-500/30 text-emerald-400':T.upvote}`}>
+              {copiedId===idea.id?<><Ic.Check/>Copied</>:<><Ic.Copy/>Share</>}
+            </button>
+            <button onClick={e=>handleUpvote(idea.id,idea.upvotes,e)} className={`flex items-center gap-1 border text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-all active:scale-95 ${T.upvote}`}>
+              <Ic.Up/> {idea.upvotes>0?idea.upvotes:'Vote'}
             </button>
           </div>
         </div>
-      </header>
+      </div>
+    );
 
-      <main className="max-w-6xl mx-auto px-5 md:px-10 py-10 space-y-8">
+    return(
+      <div onClick={()=>setExpandedId(expanded?null:idea.id)}
+        className={`group border rounded-2xl p-5 flex flex-col gap-3 cursor-pointer transition-all duration-300 hover:-translate-y-0.5 ${T.card}`}
+        style={{boxShadow:expanded?`0 0 0 1px rgba(99,102,241,.3),0 8px 32px ${dc.glow}`:'',animation:'fadeUp .3s ease-out both'}}>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-1.5 mb-1">
+              <span>{sc.emoji}</span>
+              <span className={`text-[10px] font-bold ${sc.color}`}>{idea.stage}</span>
+              <span className={`text-[10px] ${T.muted}`}>· {CAT_EMOJI[idea.category]||'💡'} {idea.category}</span>
+            </div>
+            <h3 className="font-bold text-[15px] leading-snug">{idea.title}</h3>
+          </div>
+          <div className="flex flex-col items-center bg-amber-500/10 border border-amber-500/20 rounded-xl px-2.5 py-1.5 shrink-0">
+            <Ic.Star/><span className="text-amber-400 text-sm font-black leading-tight">{score}</span>
+          </div>
+        </div>
+        <p className={`text-sm leading-relaxed line-clamp-2 ${T.sub}`}>{idea.description}</p>
+        <div>
+          <div className="flex justify-between mb-1">
+            <span className={`text-[10px] font-semibold uppercase tracking-widest ${T.muted}`}>Difficulty</span>
+            <span className={`text-[10px] font-bold ${dc.text}`}>{idea.difficulty}/5 · {dc.label}</span>
+          </div>
+          <div className={`h-1 rounded-full overflow-hidden ${T.pbar}`}>
+            <div className="h-full rounded-full" style={{width:`${idea.difficulty/5*100}%`,backgroundColor:dc.bar,boxShadow:`0 0 6px ${dc.bar}`}}/>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${mc.bg} ${mc.text}`}>📈 {idea.market_potential}</span>
+          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${d?'bg-white/5 text-zinc-500':'bg-gray-100 text-zinc-500'}`}>💰 {idea.revenue_model}</span>
+          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${d?'bg-white/5 text-zinc-500':'bg-gray-100 text-zinc-500'}`}>👥 {idea.target_audience.length>22?idea.target_audience.slice(0,22)+'…':idea.target_audience}</span>
+        </div>
+        {expanded&&(
+          <div className={`text-xs space-y-2.5 border-t pt-3 ${T.div} animate-in fade-in duration-200`}>
+            <div><p className={`font-bold uppercase text-[10px] tracking-widest mb-0.5 ${T.muted}`}>Problem</p><p className={T.sub}>{idea.problem_statement}</p></div>
+            <div><p className={`font-bold uppercase text-[10px] tracking-widest mb-0.5 ${T.muted}`}>Audience</p><p className={T.sub}>{idea.target_audience}</p></div>
+          </div>
+        )}
+        <div className={`flex items-center justify-between border-t pt-3 mt-auto ${T.div}`}>
+          <span className={`text-[11px] ${T.muted}`}>{new Date(idea.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+          <div className="flex gap-1.5" onClick={e=>e.stopPropagation()}>
+            <button onClick={e=>copyLink(idea,e)} className={`flex items-center gap-1 border text-[11px] font-semibold px-2.5 py-1.5 rounded-lg transition-all ${copiedId===idea.id?'bg-emerald-500/10 border-emerald-500/30 text-emerald-400':T.upvote}`}>
+              {copiedId===idea.id?<><Ic.Check/>Copied</>:<><Ic.Copy/>Share</>}
+            </button>
+            <button onClick={e=>handleUpvote(idea.id,idea.upvotes,e)} className={`flex items-center gap-1 border text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-all active:scale-95 ${T.upvote}`}>
+              <Ic.Up/> {idea.upvotes>0?idea.upvotes:'Vote'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { label: 'Total Ideas',   value: stats.total,   suffix: '',    emoji: '📊', grad: 'from-indigo-500/10 to-purple-500/10',  bord: d ? 'border-indigo-500/15' : 'border-indigo-100' },
-            { label: 'Top Category',  value: stats.topCat,  suffix: '',    emoji: '🏆', grad: 'from-amber-500/10 to-yellow-500/10',   bord: d ? 'border-amber-500/15'  : 'border-amber-100' },
-            { label: 'Avg Difficulty',value: stats.avgDiff, suffix: '/5',  emoji: '⚙️', grad: 'from-blue-500/8 to-cyan-500/8',       bord: d ? 'border-blue-500/15'   : 'border-blue-100' },
-            { label: 'Avg Score',     value: stats.avgScore,suffix: ' pts',emoji: '⭐', grad: 'from-emerald-500/8 to-teal-500/8',    bord: d ? 'border-emerald-500/15': 'border-emerald-100' },
-          ].map((s, i) => (
-            <div key={i} className={`relative overflow-hidden border rounded-2xl p-4 md:p-5 ${T.glass} ${s.bord}`}>
-              <div className={`absolute inset-0 bg-gradient-to-br ${s.grad}`} />
-              <div className="relative">
-                <span className="text-lg mb-2 block">{s.emoji}</span>
-                <div className="text-2xl md:text-3xl font-black tracking-tight mb-0.5">{s.value}{s.suffix !== '' && s.value !== '—' ? s.suffix : ''}</div>
-                <div className={`text-[11px] font-medium uppercase tracking-wider ${T.muted}`}>{s.label}</div>
+  return(
+    <div className={`min-h-screen font-[system-ui,sans-serif] transition-colors duration-300 ${T.page}`}>
+      {/* Ambient blobs */}
+      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+        <div className="absolute -top-60 -left-32 w-[600px] h-[600px] bg-indigo-600/7 rounded-full blur-3xl"/>
+        <div className="absolute top-1/2 -right-40 w-[500px] h-[500px] bg-purple-600/5 rounded-full blur-3xl"/>
+        <div className="absolute -bottom-48 left-1/4 w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-3xl"/>
+      </div>
+
+      {/* Navbar */}
+      <nav className={`border-b sticky top-0 z-40 backdrop-blur-xl transition-colors ${T.nav}`}>
+        <div className="px-5 md:px-8 h-14 flex items-center gap-4">
+          <button onClick={()=>setSidebarOpen(!sidebarOpen)} className={`p-2 rounded-lg border transition-all ${T.iconBtn}`}><Ic.Menu/></button>
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25 text-xs">💡</div>
+            <span className="font-black text-base tracking-tight bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">IdeaVault</span>
+          </div>
+          {/* Search bar in nav */}
+          <div className="relative flex-1 max-w-lg hidden md:block">
+            <span className={`absolute left-3 top-1/2 -translate-y-1/2 ${T.muted}`}><Ic.Search/></span>
+            <input ref={searchRef} type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search ideas… ( / )"
+              className={`w-full border rounded-xl py-2 pl-9 pr-4 text-sm outline-none transition-all ${T.inp}`}/>
+          </div>
+          <div className="flex items-center gap-1.5 ml-auto">
+            <button onClick={()=>exportCSV(filtered)} title="Export CSV" className={`p-2 rounded-lg border transition-all hidden md:flex ${T.iconBtn}`}><Ic.DL/></button>
+            <button onClick={()=>setDark(!d)} className={`p-2 rounded-lg border transition-all ${T.iconBtn}`}>{d?<Ic.Sun/>:<Ic.Moon/>}</button>
+            <button onClick={()=>{setShowForm(true);setFormError('');setFormSuccess(false);}}
+              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-500/20">
+              <Ic.Plus/> <span className="hidden sm:inline">Submit</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <div className="flex min-h-[calc(100vh-56px)]">
+        {/* Sidebar */}
+        <aside className={`shrink-0 border-r transition-all duration-300 overflow-hidden ${T.sidebar} ${T.div} ${sidebarOpen?'w-64':'w-0'}`}>
+          <div className="w-64 p-5 space-y-6 overflow-y-auto max-h-[calc(100vh-56px)] sticky top-14">
+
+            {/* Stats */}
+            <div>
+              <p className={`text-[10px] font-black uppercase tracking-widest mb-3 ${T.muted}`}>Overview</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[{label:'Ideas',val:stats.total},{label:'Top Cat.',val:stats.topCat},{label:'Avg Diff',val:stats.avgDiff!=='—'?`${stats.avgDiff}/5`:'—'},{label:'Avg Score',val:stats.avgScore!=='—'?`${stats.avgScore}pts`:'—'}].map((s,i)=>(
+                  <div key={i} className={`border rounded-xl p-3 ${d?'bg-white/[0.03] border-white/[0.07]':'bg-gray-50 border-gray-100'}`}>
+                    <div className="text-base font-black">{s.val}</div>
+                    <div className={`text-[10px] ${T.muted}`}>{s.label}</div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
 
-        {/* Analytics Panel */}
-        {showAnalytics && analytics.length > 0 && (
-          <div className={`border rounded-2xl p-6 transition-all animate-in fade-in slide-in-from-top-2 duration-300 ${T.glass}`}>
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="font-bold text-sm uppercase tracking-widest text-indigo-400">📊 Ideas by Category</h3>
-              <button onClick={() => setShowAnalytics(false)} className={`${T.muted} hover:text-red-400 transition-colors`}><I.X /></button>
-            </div>
-            <div className="space-y-2.5">
-              {analytics.map(({ cat, count, pct, color }) => (
-                <div key={cat} className="flex items-center gap-3">
-                  <span className={`text-xs font-semibold w-20 shrink-0 ${T.sub}`}>{cat}</span>
-                  <div className={`flex-1 h-5 rounded-lg overflow-hidden ${T.pbar}`}>
-                    <div className="h-full rounded-lg transition-all duration-700 flex items-center px-2" style={{ width: `${Math.max(pct, 8)}%`, backgroundColor: color }}>
-                      <span className="text-[10px] font-black text-white">{count}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Trending Banner */}
-        {trending.length > 0 && (
-          <div className={`border rounded-2xl px-5 py-4 flex flex-wrap items-center gap-3 ${d ? 'bg-gradient-to-r from-amber-500/5 to-orange-500/5 border-amber-500/15' : 'bg-amber-50/80 border-amber-200'}`}>
-            <span className={`text-sm font-bold text-amber-500 flex items-center gap-1.5 shrink-0`}>🔥 Hot</span>
-            {trending.map(t => (
-              <button key={t.id} onClick={() => setExpandedId(expandedId === t.id ? null : t.id)}
-                className={`flex items-center gap-2 border rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${d ? 'bg-white/5 border-white/10 hover:border-amber-500/30 text-zinc-300' : 'bg-white border-gray-200 text-zinc-700 hover:border-amber-300'}`}>
-                <span style={{ color: STAGE_CFG[t.stage].dot }}>●</span>
-                <span className="max-w-[110px] truncate">{t.title}</span>
-                <span className="text-amber-500 flex items-center gap-0.5"><I.Up />{t.upvotes}</span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Search + Sort */}
-        <div className="flex flex-col md:flex-row gap-3">
-          <div className="relative flex-1">
-            <span className={`absolute left-3.5 top-1/2 -translate-y-1/2 ${T.muted}`}><I.Search /></span>
-            <input ref={searchRef} type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search ideas… press / to focus"
-              className={`w-full border rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none transition-all ${T.inp}`} />
-          </div>
-          <div className={`flex border rounded-xl p-1 gap-0.5 transition-colors ${T.sortbox}`}>
-            {(['newest', 'popular', 'trending'] as SortMode[]).map(s => (
-              <button key={s} onClick={() => setSortBy(s)} className={`px-3 py-1.5 rounded-lg text-[11px] font-bold capitalize transition-all ${sortBy === s ? 'bg-indigo-600 text-white shadow-md' : T.muted}`}>
-                {s === 'trending' ? '🔥' : s === 'popular' ? '⭐' : '🕐'} {s}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="space-y-2">
-          <PillFilter label="Category" values={CATEGORIES} current={filterCat} onChange={setFilterCat} />
-          <div className="flex flex-wrap gap-2 items-center">
-            <PillFilter label="Market"  values={MARKET_OPTIONS} current={filterMarket} onChange={setFilterMarket} />
-            <PillFilter label="Stage"   values={STAGES}         current={filterStage}  onChange={setFilterStage} />
-          </div>
-          <div className="flex flex-wrap gap-2 items-center">
-            <PillFilter label="Difficulty" values={Object.entries(DIFFICULTY_LABELS).map(([k, v]) => `${k} – ${v}`)}
-              current={filterDiff} onChange={v => setFilterDiff(v.split(' – ')[0])} />
-            {anyFilter && (
-              <button onClick={() => { setFilterCat('All'); setFilterDiff('All'); setFilterMarket('All'); setFilterStage('All'); setSearch(''); }}
-                className="flex items-center gap-1 text-[11px] text-red-400 hover:text-red-300 font-semibold transition-colors">
-                <I.X /> Reset all
-              </button>
+            {/* Top Idea */}
+            {stats.topIdea&&(
+              <div className={`border rounded-xl p-3 space-y-1 ${d?'bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border-indigo-500/20':'bg-indigo-50 border-indigo-100'}`}>
+                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">⭐ Top Idea</p>
+                <p className="text-sm font-bold line-clamp-2">{stats.topIdea.title}</p>
+                <p className="text-xs text-indigo-400 font-bold">{getScore(stats.topIdea)} pts · {stats.topIdea.upvotes} votes</p>
+              </div>
             )}
-          </div>
-        </div>
 
-        {/* Count row */}
-        {!loading && (
-          <div className="flex items-center justify-between">
-            <p className={`text-sm ${T.muted}`}>
-              <span className="font-bold text-white">{filtered.length}</span> of {ideas.length} ideas
-            </p>
-            {ideas.length > 0 && (
-              <button onClick={() => exportCSV(filtered)} className={`text-xs flex items-center gap-1.5 ${T.muted} hover:text-emerald-400 transition-colors font-semibold`}>
-                <I.Download /> Export {filtered.length} idea{filtered.length !== 1 ? 's' : ''}
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Cards */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1,2,3,4,5,6].map(i => <div key={i} className={`border rounded-2xl h-52 animate-pulse ${T.skeleton}`} />)}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className={`text-center py-28 ${T.muted}`}>
-            <div className="text-6xl mb-5 opacity-30">💡</div>
-            <p className="text-xl font-bold mb-1.5">No ideas match</p>
-            <p className="text-sm">Clear filters or submit a brand-new idea!</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map((idea) => {
-              const score = getScore(idea);
-              const dc = DIFF_CFG[idea.difficulty];
-              const mc = MKT_CFG[idea.market_potential];
-              const sc = STAGE_CFG[idea.stage];
-              const expanded = expandedId === idea.id;
-              return (
-                <div key={idea.id} onClick={() => setExpandedId(expanded ? null : idea.id)}
-                  className={`group relative border rounded-2xl p-5 flex flex-col gap-3.5 cursor-pointer transition-all duration-300 hover:-translate-y-0.5 ${T.card}`}
-                  style={{ boxShadow: expanded ? `0 0 0 1px rgba(99,102,241,.3), 0 8px 32px ${dc.glow}` : '', animation: 'fadeUp .3s ease-out both' }}>
-
-                  {/* Stage + Category */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm">{sc.label}</span>
-                      <span className={`text-[11px] font-bold ${sc.color}`}>{idea.stage}</span>
-                      <span className={`text-[11px] ${T.muted}`}>· {idea.category}</span>
-                    </div>
-                    {/* Score badge */}
-                    <div className="flex items-center gap-1 text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-2 py-0.5">
-                      <I.Star />
-                      <span className="text-xs font-black text-amber-400">{score}</span>
-                    </div>
-                  </div>
-
-                  {/* Title */}
-                  <h3 className="font-bold text-[15px] leading-snug">{idea.title}</h3>
-
-                  {/* Description */}
-                  <p className={`text-sm leading-relaxed line-clamp-2 ${T.sub}`}>{idea.description}</p>
-
-                  {/* Difficulty bar */}
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <span className={`text-[10px] font-semibold uppercase tracking-widest ${T.muted}`}>Difficulty</span>
-                      <span className={`text-[10px] font-bold ${dc.text}`}>{idea.difficulty}/5 · {DIFFICULTY_LABELS[idea.difficulty]}</span>
+            {/* Category breakdown */}
+            <div>
+              <p className={`text-[10px] font-black uppercase tracking-widest mb-3 ${T.muted}`}>By Category</p>
+              <div className="space-y-2">
+                {catBreakdown.slice(0,6).map(({cat,count,pct,color})=>(
+                  <button key={cat} onClick={()=>setFilterCat(filterCat===cat?'All':cat)} className="w-full text-left">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-xs font-medium ${filterCat===cat?'text-white font-bold':T.sub}`}>{CAT_EMOJI[cat]} {cat}</span>
+                      <span className={`text-[10px] font-bold ${T.muted}`}>{count}</span>
                     </div>
                     <div className={`h-1 rounded-full overflow-hidden ${T.pbar}`}>
-                      <div className="h-full rounded-full" style={{ width: `${(idea.difficulty / 5) * 100}%`, backgroundColor: dc.bar, boxShadow: `0 0 6px ${dc.bar}` }} />
+                      <div className="h-full rounded-full transition-all" style={{width:`${pct}%`,backgroundColor:color,opacity:filterCat===cat?1:.6}}/>
                     </div>
-                  </div>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                  {/* Badges */}
-                  <div className="flex flex-wrap gap-1.5">
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${mc.bg} ${mc.text}`}>📈 {idea.market_potential}</span>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${d ? 'bg-white/5 text-zinc-500' : 'bg-gray-100 text-zinc-500'}`}>💰 {idea.revenue_model}</span>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${d ? 'bg-white/5 text-zinc-500' : 'bg-gray-100 text-zinc-500'}`}>👥 {idea.target_audience.length > 20 ? idea.target_audience.slice(0,20)+'…' : idea.target_audience}</span>
-                  </div>
+            {/* Filters */}
+            <div className="space-y-2">
+              <p className={`text-[10px] font-black uppercase tracking-widest ${T.muted}`}>Filters {activeFilterCount>0&&<span className="text-indigo-400">({activeFilterCount})</span>}</p>
+              <Dropdown label="Market Potential" value={filterMarket} options={[...MARKET_OPTIONS]} onChange={setFilterMarket} dark={d}/>
+              <Dropdown label="Stage" value={filterStage} options={[...STAGES]} onChange={setFilterStage} dark={d}/>
+              <Dropdown label="Difficulty" value={filterDiff!=='All'?`${filterDiff} – ${DC[parseInt(filterDiff)]?.label||''}`:filterDiff}
+                options={Object.entries(DC).map(([k,v])=>`${k} – ${v.label}`)} onChange={v=>setFilterDiff(v==='All'?'All':v.split(' – ')[0])} dark={d}/>
+              <Dropdown label="Revenue Model" value={filterRevenue} options={REVENUE_MODELS} onChange={setFilterRevenue} dark={d}/>
+              {anyFilter&&(
+                <button onClick={()=>{setFilterCat('All');setFilterDiff('All');setFilterMarket('All');setFilterStage('All');setFilterRevenue('All');setSearch('');}}
+                  className="w-full text-center text-xs text-red-400 hover:text-red-300 transition-colors py-1.5 font-semibold">
+                  ✕ Reset all filters
+                </button>
+              )}
+            </div>
 
-                  {/* Expanded detail */}
-                  {expanded && (
-                    <div className={`grid grid-cols-1 gap-2.5 text-xs border-t pt-3.5 ${T.divider} animate-in fade-in duration-200`}>
-                      <div>
-                        <p className={`font-bold uppercase tracking-wider text-[10px] mb-1 ${T.muted}`}>Problem</p>
-                        <p className={T.sub}>{idea.problem_statement}</p>
+            {/* Hottest ideas (sidebar) */}
+            {ideas.filter(i=>i.upvotes>0).length>0&&(
+              <div>
+                <p className={`text-[10px] font-black uppercase tracking-widest mb-2.5 text-amber-500`}>🔥 Trending</p>
+                <div className="space-y-2">
+                  {[...ideas].sort((a,b)=>b.upvotes-a.upvotes).slice(0,4).map(i=>(
+                    <button key={i.id} onClick={()=>setExpandedId(i.id)} className={`w-full text-left border rounded-xl px-3 py-2.5 text-xs transition-all ${d?'bg-white/[0.03] border-white/[0.07] hover:border-amber-500/30':'bg-gray-50 border-gray-100 hover:border-amber-200'}`}>
+                      <p className="font-semibold truncate">{i.title}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span style={{color:SC[i.stage].dot}}>●</span>
+                        <span className={T.muted}>{i.stage}</span>
+                        <span className="text-amber-500 flex items-center gap-0.5 ml-auto"><Ic.Up/>{i.upvotes}</span>
                       </div>
-                      <div>
-                        <p className={`font-bold uppercase tracking-wider text-[10px] mb-1 ${T.muted}`}>Target Audience</p>
-                        <p className={T.sub}>{idea.target_audience}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Footer */}
-                  <div className={`flex items-center justify-between border-t pt-3 mt-auto ${T.divider}`}>
-                    <span className={`text-[11px] ${T.muted}`}>{new Date(idea.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                    <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
-                      <button onClick={e => copyLink(idea, e)}
-                        className={`flex items-center gap-1 border text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-all ${copiedId === idea.id ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : T.upvote}`}>
-                        {copiedId === idea.id ? <><I.Check /> Copied</> : <><I.Copy /> Share</>}
-                      </button>
-                      <button onClick={e => handleUpvote(idea.id, idea.upvotes, e)}
-                        className={`flex items-center gap-1 border text-[11px] font-bold px-2.5 py-1 rounded-lg transition-all active:scale-95 ${T.upvote}`}>
-                        <I.Up /> {idea.upvotes > 0 ? idea.upvotes : 'Vote'}
-                      </button>
-                    </div>
-                  </div>
+                    </button>
+                  ))}
                 </div>
-              );
-            })}
+              </div>
+            )}
           </div>
-        )}
-      </main>
+        </aside>
+
+        {/* Main content */}
+        <main className="flex-1 min-w-0 p-5 md:p-8 space-y-6">
+          {/* Toolbar */}
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`text-sm ${T.muted}`}><span className="font-bold text-white">{filtered.length}</span> of {ideas.length} ideas</span>
+              {anyFilter&&<span className="text-xs bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full font-semibold">{activeFilterCount} filter{activeFilterCount!==1?'s':''} active</span>}
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Sort dropdown */}
+              <div className={`flex border rounded-xl p-1 gap-0.5 transition-colors ${d?'bg-white/[0.04] border-white/[0.08]':'bg-white border-gray-200'}`}>
+                {([['newest','🕐'],['popular','⭐'],['trending','🔥'],['easiest','✅']] as [SortMode,string][]).map(([s,e])=>(
+                  <button key={s} onClick={()=>setSortBy(s)} className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold capitalize transition-all ${sortBy===s?'bg-indigo-600 text-white shadow-md':T.muted}`}>
+                    {e} {s}
+                  </button>
+                ))}
+              </div>
+              {/* View toggle */}
+              <div className={`flex border rounded-xl p-1 gap-0.5 ${d?'bg-white/[0.04] border-white/[0.08]':'bg-white border-gray-200'}`}>
+                <button onClick={()=>setViewMode('grid')} className={`p-1.5 rounded-lg transition-all ${viewMode==='grid'?'bg-indigo-600 text-white':T.muted}`}><Ic.Grid/></button>
+                <button onClick={()=>setViewMode('list')} className={`p-1.5 rounded-lg transition-all ${viewMode==='list'?'bg-indigo-600 text-white':T.muted}`}><Ic.List/></button>
+              </div>
+              <button onClick={()=>exportCSV(filtered)} className={`p-2 border rounded-xl transition-all ${T.iconBtn}`} title="Export CSV"><Ic.DL/></button>
+            </div>
+          </div>
+
+          {/* Mobile search */}
+          <div className="md:hidden relative">
+            <span className={`absolute left-3 top-1/2 -translate-y-1/2 ${T.muted}`}><Ic.Search/></span>
+            <input ref={searchRef} type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search ideas…"
+              className={`w-full border rounded-xl py-2.5 pl-9 pr-4 text-sm outline-none transition-all ${T.inp}`}/>
+          </div>
+
+          {/* Cards */}
+          {loading?(
+            <div className={`grid gap-4 ${viewMode==='grid'?'grid-cols-1 md:grid-cols-2 lg:grid-cols-3':'grid-cols-1'}`}>
+              {Array.from({length:6},(_,i)=><div key={i} className={`border rounded-2xl h-48 animate-pulse ${T.skel}`}/>)}
+            </div>
+          ):filtered.length===0?(
+            <div className={`text-center py-28 ${T.muted}`}>
+              <div className="text-6xl mb-5 opacity-30">💡</div>
+              <p className="text-xl font-bold mb-1.5">No ideas match</p>
+              <p className="text-sm">Clear filters or submit a new idea!</p>
+            </div>
+          ):(
+            <div className={`grid gap-4 ${viewMode==='grid'?'grid-cols-1 md:grid-cols-2 lg:grid-cols-3':'grid-cols-1'}`}>
+              {filtered.map(idea=><IdeaCard key={idea.id} idea={idea}/>)}
+            </div>
+          )}
+        </main>
+      </div>
 
       {/* Submit Modal */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" onClick={e => e.target === e.currentTarget && setShowForm(false)}>
-          <div className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={() => setShowForm(false)} />
-          <div className={`relative border rounded-t-3xl md:rounded-3xl p-6 md:p-8 w-full max-w-2xl max-h-[92vh] overflow-y-auto transition-colors animate-in slide-in-from-bottom-4 md:zoom-in-95 duration-300 ${T.modal}`}>
-            {formSuccess ? (
+      {showForm&&(
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" onClick={e=>e.target===e.currentTarget&&setShowForm(false)}>
+          <div className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={()=>setShowForm(false)}/>
+          <div className={`relative border rounded-t-3xl md:rounded-3xl p-6 md:p-8 w-full max-w-2xl max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom-4 md:zoom-in-95 duration-300 ${T.modal}`}>
+            {formSuccess?(
               <div className="text-center py-16 animate-in zoom-in duration-300">
                 <div className="text-6xl mb-4">🎉</div>
                 <h2 className="text-2xl font-black mb-2">Idea Submitted!</h2>
                 <p className={T.muted}>Your startup idea is now live on the dashboard.</p>
               </div>
-            ) : (
+            ):(
               <>
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h2 className="text-lg font-black">New Startup Idea</h2>
-                    <p className={`text-xs mt-0.5 ${T.muted}`}>All starred ( * ) fields are required</p>
+                    <h2 className="text-lg font-black flex items-center gap-2"><Ic.Bulb/> New Startup Idea</h2>
+                    <p className={`text-xs mt-0.5 ${T.muted}`}>Starred ( * ) fields are required · Shortcut: N</p>
                   </div>
-                  <button onClick={() => setShowForm(false)} className={`p-2 rounded-xl transition-all ${T.toggle}`}><I.X /></button>
+                  <button onClick={()=>setShowForm(false)} className={`p-2 rounded-xl transition-all ${T.iconBtn}`}><Ic.X/></button>
                 </div>
-                {formError && <div className="mb-4 p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">{formError}</div>}
+                {formError&&<div className="mb-4 p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">{formError}</div>}
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label className={`block text-[10px] font-bold uppercase tracking-widest mb-1.5 ${T.muted}`}>Startup Title *</label>
-                    <input type="text" value={form.title} onChange={e => ff('title', e.target.value)} placeholder="e.g. AI-Powered Calorie Tracker" className={inputCls} />
+                    <label className={`block text-[10px] font-black uppercase tracking-widest mb-1.5 ${T.muted}`}>Startup Title *</label>
+                    <input type="text" value={form.title} onChange={e=>ff('title',e.target.value)} placeholder="e.g. AI-Powered Calorie Tracker" className={inputCls}/>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className={`block text-[10px] font-bold uppercase tracking-widest mb-1.5 ${T.muted}`}>Short Description *</label>
-                      <textarea value={form.description} onChange={e => ff('description', e.target.value)} placeholder="What does your startup do?" rows={3} className={taCls} />
+                      <label className={`block text-[10px] font-black uppercase tracking-widest mb-1.5 ${T.muted}`}>Short Description *</label>
+                      <textarea value={form.description} onChange={e=>ff('description',e.target.value)} placeholder="What does your startup do?" rows={3} className={`${inputCls} resize-none`}/>
                     </div>
                     <div>
-                      <label className={`block text-[10px] font-bold uppercase tracking-widest mb-1.5 ${T.muted}`}>Problem Statement *</label>
-                      <textarea value={form.problem_statement} onChange={e => ff('problem_statement', e.target.value)} placeholder="What problem does this solve?" rows={3} className={taCls} />
+                      <label className={`block text-[10px] font-black uppercase tracking-widest mb-1.5 ${T.muted}`}>Problem Statement *</label>
+                      <textarea value={form.problem_statement} onChange={e=>ff('problem_statement',e.target.value)} placeholder="What problem does this solve?" rows={3} className={`${inputCls} resize-none`}/>
                     </div>
                   </div>
                   <div>
-                    <label className={`block text-[10px] font-bold uppercase tracking-widest mb-1.5 ${T.muted}`}>Target Audience *</label>
-                    <input type="text" value={form.target_audience} onChange={e => ff('target_audience', e.target.value)} placeholder="e.g. College students, SMB owners" className={inputCls} />
+                    <label className={`block text-[10px] font-black uppercase tracking-widest mb-1.5 ${T.muted}`}>Target Audience *</label>
+                    <input type="text" value={form.target_audience} onChange={e=>ff('target_audience',e.target.value)} placeholder="e.g. College students, SMB owners" className={inputCls}/>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { label: 'Category', key: 'category', opts: CATEGORIES },
-                      { label: 'Stage', key: 'stage', opts: STAGES },
-                      { label: 'Revenue Model', key: 'revenue_model', opts: REVENUE_MODELS },
-                    ].map(({ label, key, opts }) => (
+                    {[{label:'Category',key:'category',opts:CATEGORIES},{label:'Stage',key:'stage',opts:STAGES},{label:'Revenue Model',key:'revenue_model',opts:REVENUE_MODELS}].map(({label,key,opts})=>(
                       <div key={key}>
-                        <label className={`block text-[10px] font-bold uppercase tracking-widest mb-1.5 ${T.muted}`}>{label}</label>
-                        <select value={(form as any)[key]} onChange={e => ff(key, e.target.value)} className={selCls}>
-                          {opts.map(o => <option key={o}>{o}</option>)}
+                        <label className={`block text-[10px] font-black uppercase tracking-widest mb-1.5 ${T.muted}`}>{label}</label>
+                        <select value={(form as any)[key]} onChange={e=>ff(key,e.target.value)} className={`${inputCls} cursor-pointer`}>
+                          {opts.map(o=><option key={o}>{o}</option>)}
                         </select>
                       </div>
                     ))}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className={`block text-[10px] font-bold uppercase tracking-widest mb-1.5 ${T.muted}`}>Difficulty</label>
-                      <select value={form.difficulty} onChange={e => ff('difficulty', parseInt(e.target.value))} className={selCls}>
-                        {Object.entries(DIFFICULTY_LABELS).map(([k, v]) => <option key={k} value={k}>{k} – {v}</option>)}
+                      <label className={`block text-[10px] font-black uppercase tracking-widest mb-1.5 ${T.muted}`}>Difficulty</label>
+                      <select value={form.difficulty} onChange={e=>ff('difficulty',parseInt(e.target.value))} className={`${inputCls} cursor-pointer`}>
+                        {Object.entries(DC).map(([k,v])=><option key={k} value={k}>{k} – {v.label}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className={`block text-[10px] font-bold uppercase tracking-widest mb-1.5 ${T.muted}`}>Market Potential</label>
-                      <select value={form.market_potential} onChange={e => ff('market_potential', e.target.value as MarketPotential)} className={selCls}>
-                        {MARKET_OPTIONS.map(m => <option key={m}>{m}</option>)}
+                      <label className={`block text-[10px] font-black uppercase tracking-widest mb-1.5 ${T.muted}`}>Market Potential</label>
+                      <select value={form.market_potential} onChange={e=>ff('market_potential',e.target.value as MarketPotential)} className={`${inputCls} cursor-pointer`}>
+                        {MARKET_OPTIONS.map(m=><option key={m}>{m}</option>)}
                       </select>
                     </div>
                   </div>
-                  <button type="submit" disabled={submitting}
-                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl py-3 transition-all active:scale-[0.98] disabled:opacity-50 shadow-xl shadow-indigo-500/20 mt-1">
-                    {submitting ? 'Submitting…' : '🚀 Submit Idea'}
+                  <button type="submit" disabled={submitting} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl py-3.5 transition-all active:scale-[0.98] disabled:opacity-50 shadow-xl shadow-indigo-500/20">
+                    {submitting?'Submitting…':'🚀 Submit Idea'}
                   </button>
                 </form>
               </>
@@ -559,10 +559,7 @@ export default function App() {
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-      `}</style>
+      <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
     </div>
   );
 }
