@@ -144,13 +144,16 @@ export default function App() {
   const [authMode, setAuthMode] = useState<'login'|'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [authError, setAuthError] = useState('');
   const [editingIdea, setEditingIdea] = useState<Idea|null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSession(session));
-    return () => subscription.unsubscribe();
+    // Custom Login System: bypassing Supabase Auth to avoid rate limits
+    const stored = localStorage.getItem('vibeathon_session');
+    if (stored) {
+      try { setSession(JSON.parse(stored)); } catch(e){}
+    }
   }, []);
 
   const heroRef = useRef<HTMLElement>(null);
@@ -250,35 +253,43 @@ export default function App() {
   async function handleAuth(e:React.FormEvent) {
     e.preventDefault(); setAuthError('');
     if (authMode === 'register') {
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (!email.trim() || !password.trim() || !fullName.trim()) return setAuthError('Please fill in all fields.');
+      // Insert to custom_users
+      const { data, error } = await supabase.from('custom_users').insert([{ email, password, full_name: fullName }]).select().single();
       if (error) {
-        if (error.message.includes('security purposes')) setAuthError('Rate limit hit (timer): Please wait a few seconds before trying again.');
+        if (error.code === '23505') setAuthError('Email already exists. Please login.');
         else setAuthError(error.message);
-      } else if (!data.session) {
-        setAuthError('Registration logged! Please check your email to confirm your account OR disable "Confirm Email" in Supabase Auth settings to login instantly.');
-      } else { 
-        setShowAuth(false); setEmail(''); setPassword(''); 
+      } else if (data) {
+        setSession({ user: data });
+        localStorage.setItem('vibeathon_session', JSON.stringify({ user: data }));
+        setShowAuth(false); setEmail(''); setPassword(''); setFullName('');
       }
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        if (error.message.includes('Email not confirmed')) setAuthError('Login failed: Email not confirmed. Please check your inbox or disable "Confirm Email" in Supabase.');
-        else if (error.message.includes('security purposes')) setAuthError('Rate limit hit (timer): Please wait a few seconds before trying again.');
-        else setAuthError(error.message);
-      } else { 
-        setShowAuth(false); setEmail(''); setPassword(''); 
+      // Login via custom_users
+      const { data, error } = await supabase.from('custom_users').select('*').eq('email', email).eq('password', password).single();
+      if (error || !data) {
+        setAuthError('Invalid email or password.');
+      } else {
+        setSession({ user: data });
+        localStorage.setItem('vibeathon_session', JSON.stringify({ user: data }));
+        setShowAuth(false); setEmail(''); setPassword(''); setFullName('');
       }
     }
   }
 
-  async function handleLogout() {
-    await supabase.auth.signOut();
+  function handleLogout() {
+    setSession(null);
+    localStorage.removeItem('vibeathon_session');
   }
 
   async function handleSubmit(e:React.FormEvent){
     e.preventDefault();setFormError('');
     if(!form.title.trim()||!form.description.trim()||!form.problem_statement.trim()||!form.target_audience.trim()) return setFormError('All starred fields are required.');
     
+    if(ideas.some(i=>i.title.toLowerCase()===form.title.toLowerCase().trim() && i.id !== editingIdea?.id)) { 
+      return setFormError('This title already exists.'); 
+    }
+
     let exp = null;
     if (form.expires_in === '24h') { const d=new Date(); d.setHours(d.getHours()+24); exp=d.toISOString(); }
     else if (form.expires_in === '7d') { const d=new Date(); d.setDate(d.getDate()+7); exp=d.toISOString(); }
@@ -466,12 +477,12 @@ export default function App() {
             <button onClick={e=>handleUpvote(idea.id,idea.upvotes,e)} className={`flex items-center gap-1 border text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-all active:scale-95 ${T.upvote}`}>
               <Ic.Up/> {idea.upvotes>0?idea.upvotes:'Vote'}
             </button>
+            {isOwner && (
+              <button onClick={handleEdit} className={`flex items-center gap-1 border text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-all active:scale-95 ${d?'border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10':'border-indigo-200 text-indigo-600 hover:bg-indigo-50'}`}>
+                ✏️ Edit
+              </button>
+            )}
           </div>
-          {expanded && isOwner && (
-            <div className="mt-2 text-right">
-              <button onClick={handleEdit} className={`text-[11px] font-bold px-3 py-1.5 rounded-lg border transition-all ${d?'border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10':'border-indigo-200 text-indigo-600 hover:bg-indigo-50'}`}>✏️ Edit / Manage</button>
-            </div>
-          )}
         </div>
       </div>
     );
@@ -547,7 +558,15 @@ export default function App() {
               {filtered.length} ideas
             </div>
             {session ? (
-              <button onClick={handleLogout} className={`px-4 py-2 text-sm font-bold border rounded-xl transition-all hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 ${T.iconBtn}`}>Logout</button>
+              <div className="flex items-center gap-3">
+                <div className={`hidden md:flex items-center gap-2 pl-3 py-1 pr-1 border rounded-xl bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-indigo-500/20 shadow-sm`}>
+                  <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center text-white text-[10px] font-bold">
+                    {session.user?.full_name?.charAt(0) || session.user?.email?.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-xs font-bold text-indigo-300 tracking-wide pr-2">{session.user?.full_name || session.user?.email.split('@')[0]}</span>
+                </div>
+                <button onClick={handleLogout} className={`px-4 py-2 text-sm font-bold border rounded-xl transition-all hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 ${T.iconBtn}`}>Logout</button>
+              </div>
             ) : (
               <button onClick={()=>{setAuthMode('login'); setShowAuth(true);}} className={`px-4 py-2 text-sm font-bold border rounded-xl transition-all ${T.iconBtn}`}>Login</button>
             )}
@@ -1082,13 +1101,19 @@ export default function App() {
               </div>
               {authError&&<div className="mb-4 p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">{authError}</div>}
               <form onSubmit={handleAuth} className="space-y-4">
+                {authMode === 'register' && (
+                  <div>
+                    <label className={`block text-[10px] font-black uppercase tracking-widest mb-1.5 ${T.muted}`}>Full Name</label>
+                    <input type="text" value={fullName} onChange={e=>setFullName(e.target.value)} required className={inputCls}/>
+                  </div>
+                )}
                 <div>
                   <label className={`block text-[10px] font-black uppercase tracking-widest mb-1.5 ${T.muted}`}>Email</label>
                   <input type="email" value={email} onChange={e=>setEmail(e.target.value)} required className={inputCls}/>
                 </div>
                 <div>
                   <label className={`block text-[10px] font-black uppercase tracking-widest mb-1.5 ${T.muted}`}>Password</label>
-                  <input type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={6} className={inputCls}/>
+                  <input type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={4} className={inputCls}/>
                 </div>
                 <button type="submit" className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl py-3.5 mt-2 transition-all active:scale-[0.98]">
                   {authMode === 'login' ? 'Sign In' : 'Sign Up'}
