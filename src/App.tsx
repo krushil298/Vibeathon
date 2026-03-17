@@ -4,8 +4,9 @@ import { supabase } from './supabase';
 // --- Types ---
 type MarketPotential = 'Low' | 'Medium' | 'High' | 'Very High';
 type Stage = 'Concept' | 'Early Stage' | 'MVP' | 'Growth';
-type SortMode = 'newest' | 'popular' | 'trending' | 'easiest';
+type SortMode = 'newest' | 'popular' | 'easiest';
 type ViewMode = 'grid' | 'list';
+type Page = 'dashboard' | 'leaderboard';
 type Idea = {
   id: string; title: string; description: string; problem_statement: string;
   category: string; difficulty: number; market_potential: MarketPotential;
@@ -115,6 +116,7 @@ function Dropdown({label,value,options,onChange,dark}:{label:string;value:string
 
 export default function App() {
   const [dark,setDark]=useState(true);
+  const [activePage,setActivePage]=useState<Page>('dashboard');
   const [ideas,setIdeas]=useState<Idea[]>([]);
   const [loading,setLoading]=useState(true);
   const [showForm,setShowForm]=useState(false);
@@ -131,7 +133,7 @@ export default function App() {
   const [filterMarket,setFilterMarket]=useState('All');
   const [filterStage,setFilterStage]=useState('All');
   const [filterRevenue,setFilterRevenue]=useState('All');
-  const [sortBy,setSortBy]=useState<SortMode>('trending');
+  const [sortBy,setSortBy]=useState<SortMode>('newest');
   const searchRef=useRef<HTMLInputElement>(null);
   const [form,setForm]=useState({title:'',description:'',problem_statement:'',target_audience:'',revenue_model:REVENUE_MODELS[0],category:CATEGORIES[0],difficulty:3,market_potential:'High' as MarketPotential,stage:'Concept' as Stage});
 
@@ -185,7 +187,6 @@ export default function App() {
   const filtered=useMemo(()=>{
     let list=[...ideas];
     if(sortBy==='popular') list=list.sort((a,b)=>getScore(b)-getScore(a));
-    if(sortBy==='trending') list=list.sort((a,b)=>b.upvotes-a.upvotes);
     if(sortBy==='easiest') list=list.sort((a,b)=>a.difficulty-b.difficulty);
     if(search.trim()) list=list.filter(i=>[i.title,i.description,i.category,i.target_audience,i.revenue_model,i.stage].join(' ').toLowerCase().includes(search.toLowerCase()));
     if(filterCat!=='All') list=list.filter(i=>i.category===filterCat);
@@ -331,11 +332,13 @@ export default function App() {
       <nav className={`border-b sticky top-0 z-40 backdrop-blur-xl transition-colors ${T.nav}`}>
         <div className="px-5 md:px-8 h-16 flex items-center gap-3">
 
-          {/* Left: sidebar toggle + brand */}
-          <button onClick={()=>setSidebarOpen(!sidebarOpen)}
-            className={`p-2 rounded-xl border transition-all shrink-0 ${T.iconBtn}`}>
-            <Ic.Menu/>
-          </button>
+          {/* Left: sidebar toggle (dashboard only) + brand */}
+          {activePage==='dashboard' && (
+            <button onClick={()=>setSidebarOpen(!sidebarOpen)}
+              className={`p-2 rounded-xl border transition-all shrink-0 ${T.iconBtn}`}>
+              <Ic.Menu/>
+            </button>
+          )}
           <div className="flex items-center gap-2.5 shrink-0">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 text-sm select-none">💡</div>
             <div className="hidden sm:block">
@@ -345,14 +348,22 @@ export default function App() {
 
           {/* Center: nav links */}
           <div className="hidden lg:flex items-center gap-1 ml-4">
-            {[
-              {label:'Dashboard', action:()=>setSortBy('newest'),   active: sortBy==='newest'},
-              {label:'🔥 Trending', action:()=>setSortBy('trending'), active: sortBy==='trending'},
-              {label:'⭐ Popular',  action:()=>setSortBy('popular'),  active: sortBy==='popular'},
-              {label:'✅ Easiest',  action:()=>setSortBy('easiest'),  active: sortBy==='easiest'},
-            ].map(({label,action,active})=>(
-              <button key={label} onClick={action}
-                className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all ${active?(d?'bg-indigo-600/20 text-indigo-300':'bg-indigo-50 text-indigo-700'):(d?'text-zinc-400 hover:text-white hover:bg-white/5':'text-zinc-500 hover:text-zinc-900 hover:bg-gray-100')}`}>
+            {([
+              {label:'🏠 Dashboard', page:'dashboard' as Page},
+              {label:'🏆 Leaderboard', page:'leaderboard' as Page},
+            ]).map(({label,page})=>(
+              <button key={page} onClick={()=>{setActivePage(page); setExpandedId(null);}}
+                className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all ${activePage===page?(d?'bg-indigo-600/20 text-indigo-300 border border-indigo-500/20':'bg-indigo-50 text-indigo-700 border border-indigo-200'):(d?'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent':'text-zinc-500 hover:text-zinc-900 hover:bg-gray-100 border border-transparent')}`}>
+                {label}
+              </button>
+            ))}
+            {activePage==='dashboard' && [
+              {label:'⭐ Popular', s:'popular' as SortMode},
+              {label:'✅ Easiest', s:'easiest' as SortMode},
+              {label:'🕐 Newest',  s:'newest'  as SortMode},
+            ].map(({label,s})=>(
+              <button key={s} onClick={()=>setSortBy(s)}
+                className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${sortBy===s?(d?'bg-purple-600/20 text-purple-300':'bg-purple-50 text-purple-700'):(d?'text-zinc-500 hover:text-white hover:bg-white/5':'text-zinc-400 hover:text-zinc-900 hover:bg-gray-100')}`}>
                 {label}
               </button>
             ))}
@@ -391,7 +402,9 @@ export default function App() {
           </div>
         </div>
       </nav>
-
+      {/* ── Dashboard Page ── */}
+      {activePage === 'dashboard' && (
+      <>
       {/* ── Hero Section ── */}
       <section className={`relative overflow-hidden border-b ${T.div}`}>
         {/* Hero background gradient mesh */}
@@ -444,9 +457,11 @@ export default function App() {
           </div>
         </div>
       </section>
+      </>
+      )}
 
-      {/* ── Leaderboard ── */}
-      {ideas.length > 0 && (() => {
+      {/* ── Leaderboard Page ── */}
+      {activePage === 'leaderboard' && (() => {
         const ranked = [...ideas].sort((a, b) => getScore(b) - getScore(a));
         const maxScore = Math.max(getScore(ranked[0]) || 1, 1);
         const p1 = ranked[0] ?? null;
@@ -585,6 +600,8 @@ export default function App() {
         );
       })()}
 
+      {/* Dashboard Main Grid Area */}
+      {activePage === 'dashboard' && (
       <div className="flex min-h-[calc(100vh-56px)]">
         {/* Sidebar — Filters only */}
         <aside className={`shrink-0 border-r transition-all duration-300 overflow-hidden ${T.sidebar} ${T.div} ${sidebarOpen?'w-60':'w-0'}`}>
@@ -639,7 +656,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               {/* Sort dropdown */}
               <div className={`flex border rounded-xl p-1 gap-0.5 transition-colors ${d?'bg-white/[0.04] border-white/[0.08]':'bg-white border-gray-200'}`}>
-                {([['newest','🕐'],['popular','⭐'],['trending','🔥'],['easiest','✅']] as [SortMode,string][]).map(([s,e])=>(
+                {([['newest','🕐'],['popular','⭐'],['easiest','✅']] as [SortMode,string][]).map(([s,e])=>(
                   <button key={s} onClick={()=>setSortBy(s)} className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold capitalize transition-all ${sortBy===s?'bg-indigo-600 text-white shadow-md':T.muted}`}>
                     {e} {s}
                   </button>
@@ -679,6 +696,7 @@ export default function App() {
           )}
         </main>
       </div>
+      )}
 
       {/* Submit Modal */}
       {showForm&&(
