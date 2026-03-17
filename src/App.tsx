@@ -457,7 +457,7 @@ export default function App() {
     );
 
     return(
-      <div onClick={()=>setExpandedId(expanded?null:idea.id)}
+      <div onClick={()=>handleView(idea.id)}
         className={`group border rounded-2xl p-5 flex flex-col gap-3 cursor-pointer transition-all duration-300 hover:-translate-y-0.5 ${T.card}`}
         style={{boxShadow:expanded?`0 0 0 1px rgba(99,102,241,.3),0 8px 32px ${dc.glow}`:'',animation:'fadeUp .3s ease-out both'}}>
         <div className="flex items-start justify-between gap-2">
