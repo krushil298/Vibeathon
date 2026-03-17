@@ -389,6 +389,11 @@ export default function App() {
     const score=getScore(idea); const dc=DC[idea.difficulty]; const mc=MC[idea.market_potential]; const sc=SC[idea.stage];
     const expanded=expandedId===idea.id;
     const isOwner = session?.user?.id === idea.user_id;
+
+    function fmtTs(ts?: string) {
+      if (!ts) return '';
+      return new Date(ts).toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    }
     function handleEdit(e: React.MouseEvent) {
       e.stopPropagation(); setEditingIdea(idea);
       setForm({
@@ -432,9 +437,9 @@ export default function App() {
             )}
           </div>
           <div className="flex flex-col gap-0.5 ml-2 text-right">
-            <span className={`text-[10px] ${T.muted}`}>Created: {new Date(idea.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+            <span className={`text-[10px] ${T.muted}`}>📅 {fmtTs(idea.created_at)}</span>
             {idea.updated_at && idea.updated_at !== idea.created_at && (
-              <span className={`text-[9px] ${T.muted} opacity-70`}>Updated: {new Date(idea.updated_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+              <span className={`text-[9px] ${T.muted} opacity-70`}>✏️ {fmtTs(idea.updated_at)}</span>
             )}
           </div>
         </div>
@@ -458,11 +463,9 @@ export default function App() {
             <div className="flex items-center bg-amber-500/10 border border-amber-500/20 rounded-xl px-2.5 py-1.5">
               <Ic.Star/><span className="text-amber-400 text-sm font-black leading-tight ml-1.5">{score}</span>
             </div>
-            {expanded && (
-              <div className="flex items-center bg-indigo-500/5 text-indigo-400/80 border border-indigo-500/20 rounded-lg px-2 py-1" title="Views">
-                <Ic.List/><span className="text-[10px] font-bold ml-1">{idea.views || 0}</span>
-              </div>
-            )}
+            <div className="flex items-center bg-indigo-500/5 text-indigo-400/80 border border-indigo-500/20 rounded-lg px-2 py-1" title="Views">
+              👁 <span className="text-[10px] font-bold ml-1">{idea.views || 0} views</span>
+            </div>
           </div>
         </div>
         <p className={`text-sm leading-relaxed line-clamp-2 ${T.sub}`}>{idea.description}</p>
@@ -488,9 +491,9 @@ export default function App() {
         )}
         <div className={`flex items-center justify-between border-t pt-3 mt-auto ${T.div}`}>
           <div className="flex flex-col gap-0.5">
-            <span className={`text-[11px] ${T.muted}`}>Created: {new Date(idea.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric', year:'numeric'})}</span>
-            {expanded && idea.updated_at && idea.updated_at !== idea.created_at && (
-              <span className={`text-[9px] ${T.muted} opacity-70`}>Updated: {new Date(idea.updated_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+            <span className={`text-[11px] ${T.muted}`}>📅 {fmtTs(idea.created_at)}</span>
+            {idea.updated_at && idea.updated_at !== idea.created_at && (
+              <span className={`text-[9px] ${T.muted} opacity-70`}>✏️ Updated: {fmtTs(idea.updated_at)}</span>
             )}
           </div>
           <div className="flex gap-1.5" onClick={e=>e.stopPropagation()}>
