@@ -445,138 +445,58 @@ export default function App() {
         </div>
       </section>
 
-      {/* ── Leaderboard Section ── */}
+      {/* ── Trending Section ── */}
       {(() => {
-        const ranked = [...ideas].sort((a,b) => getScore(b) - getScore(a));
-        const top3   = ranked.slice(0, 3);
-        const rest   = ranked.slice(3, 10);
-        const maxScore = getScore(ranked[0]) || 1;
-        if (!ranked.length) return null;
-
-        const PODIUM = [
-          { medal:'🥇', label:'1st', glow:'rgba(251,191,36,.18)', border: d?'border-amber-400/40':'border-amber-400/60',  bg: d?'bg-amber-500/8':'bg-amber-50',    ring:'ring-amber-400/30', text:'text-amber-400',  order: 1, height:'h-28' },
-          { medal:'🥈', label:'2nd', glow:'rgba(148,163,184,.12)', border: d?'border-slate-400/30':'border-slate-300',     bg: d?'bg-slate-500/5':'bg-slate-50',   ring:'ring-slate-300/30', text:'text-slate-300',  order: 0, height:'h-20' },
-          { medal:'🥉', label:'3rd', glow:'rgba(180,120,70,.12)',  border: d?'border-amber-700/30':'border-amber-700/40',  bg: d?'bg-amber-900/8':'bg-orange-50',  ring:'ring-amber-700/30', text:'text-amber-700',  order: 2, height:'h-16' },
-        ];
-
+        const hot = [...ideas].sort((a,b) => b.upvotes - a.upvotes).filter(i => i.upvotes > 0).slice(0, 6);
+        if (!hot.length) return null;
         return (
-          <div className={`border-b ${T.div} ${d ? 'bg-[#09090f]' : 'bg-gray-50/80'}`}>
-            {/* Header */}
-            <div className="px-6 md:px-10 pt-8 pb-4 flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xl">🏆</span>
-                  <h2 className="text-lg font-black tracking-tight">Idea Leaderboard</h2>
-                </div>
-                <p className={`text-xs ${T.muted}`}>Ranked by popularity score · upvotes × 2 + market weight + (6 − difficulty)</p>
-              </div>
-              <span className={`text-xs font-bold border px-3 py-1.5 rounded-full ${d ? 'bg-white/5 border-white/10 text-zinc-400' : 'bg-white border-gray-200 text-zinc-500'}`}>
-                {ranked.length} ideas ranked
-              </span>
+          <div className={`border-b px-5 md:px-8 py-5 ${T.div} ${d?'bg-gradient-to-r from-amber-500/[0.04] to-orange-500/[0.03]':'bg-gradient-to-r from-amber-50/80 to-orange-50/60'}`}>
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-base">🔥</span>
+              <span className={`text-xs font-black uppercase tracking-widest text-amber-500`}>Trending Now</span>
+              <span className={`text-[11px] ${T.muted}`}>— most upvoted ideas this session</span>
             </div>
-
-            <div className="px-6 md:px-10 pb-10 space-y-10">
-              {/* Podium top 3 */}
-              {top3.length > 0 && (
-                <div className="flex flex-col md:flex-row items-end justify-center gap-4 pt-2">
-                  {[top3[1], top3[0], top3[2]].map((idea, visualIdx) => {
-                    if (!idea) return <div key={visualIdx} className="w-full md:w-72" />;
-                    const dataIdx = top3.indexOf(idea);
-                    const p = PODIUM[dataIdx];
-                    const score = getScore(idea);
-                    const dc = DC[idea.difficulty];
-                    return (
-                      <div key={idea.id}
-                        className={`relative w-full md:w-72 border rounded-2xl p-5 flex flex-col gap-3 cursor-pointer transition-all duration-300 hover:-translate-y-1 ${p.bg} ${p.border} ${dataIdx === 0 ? 'md:mb-4 ring-1 ' + p.ring : ''}`}
-                        style={{ boxShadow: `0 0 40px ${p.glow}`, animation: `fadeUp .4s ease-out ${visualIdx * 80}ms both` }}
-                        onClick={() => setExpandedId(idea.id)}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-3xl">{p.medal}</span>
-                            <div>
-                              <div className={`text-xs font-black uppercase tracking-widest ${p.text}`}>{p.label} Place</div>
-                              <div className={`text-[10px] ${T.muted}`}>{idea.category}</div>
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-center bg-amber-500/10 border border-amber-500/25 rounded-xl px-3 py-1.5">
-                            <Ic.Star />
-                            <span className="text-amber-400 text-lg font-black leading-none">{score}</span>
-                            <span className={`text-[9px] ${T.muted}`}>pts</span>
-                          </div>
-                        </div>
-                        <p className="font-black text-base leading-snug">{idea.title}</p>
-                        <p className={`text-xs leading-relaxed line-clamp-2 ${T.sub}`}>{idea.description}</p>
-                        <div>
-                          <div className="flex justify-between mb-1">
-                            <span className={`text-[10px] uppercase tracking-widest font-semibold ${T.muted}`}>Difficulty</span>
-                            <span className={`text-[10px] font-bold ${dc.text}`}>{idea.difficulty}/5 · {dc.label}</span>
-                          </div>
-                          <div className={`h-1.5 rounded-full overflow-hidden ${T.pbar}`}>
-                            <div className="h-full rounded-full" style={{ width: `${idea.difficulty / 5 * 100}%`, backgroundColor: dc.bar, boxShadow: `0 0 6px ${dc.bar}` }} />
-                          </div>
-                        </div>
-                        <div className={`flex items-center justify-between border-t pt-3 ${T.div}`}>
-                          <div className="flex gap-1.5 flex-wrap">
-                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${MC[idea.market_potential].bg} ${MC[idea.market_potential].text}`}>📈 {idea.market_potential}</span>
-                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${d ? 'bg-white/5 text-zinc-500' : 'bg-gray-100 text-zinc-400'}`}>💰 {idea.revenue_model}</span>
-                          </div>
-                          <button onClick={e => handleUpvote(idea.id, idea.upvotes, e)}
-                            className={`flex items-center gap-1 text-xs font-black border px-3 py-1.5 rounded-lg transition-all active:scale-95 ${T.upvote}`}>
-                            <Ic.Up /> {idea.upvotes}
-                          </button>
-                        </div>
+            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+              {hot.map((idea, idx) => {
+                const score = getScore(idea);
+                const dc = DC[idea.difficulty];
+                const sc = SC[idea.stage];
+                return (
+                  <div key={idea.id}
+                    onClick={() => { setExpandedId(idea.id); document.getElementById('idea-'+idea.id)?.scrollIntoView({behavior:'smooth',block:'center'}); }}
+                    className={`shrink-0 w-64 border rounded-2xl p-4 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 ${d?'bg-white/[0.04] border-white/10 hover:border-amber-500/30':'bg-white border-gray-100 hover:border-amber-300 shadow-sm hover:shadow-md'}`}
+                    style={{animation:`fadeUp .3s ease-out ${idx*60}ms both`}}>
+                    {/* Rank + score */}
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className={`text-xs font-black ${idx===0?'text-amber-400':idx===1?'text-zinc-300':idx===2?'text-amber-700/80':'text-zinc-500'}`}>
+                        #{idx+1} {idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':''}
+                      </span>
+                      <div className="flex items-center gap-1 text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-2 py-0.5">
+                        <Ic.Star/><span className="text-[11px] font-black">{score} pts</span>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Ranked table #4–#10 */}
-              {rest.length > 0 && (
-                <div className={`border rounded-2xl overflow-hidden ${T.div} ${d ? 'bg-white/[0.02]' : 'bg-white shadow-sm'}`}>
-                  <div className={`px-5 py-3 border-b flex items-center gap-2 ${T.div} ${d ? 'bg-white/[0.03]' : 'bg-gray-50'}`}>
-                    <span className={`text-[11px] font-black uppercase tracking-widest ${T.muted}`}>📋 Rankings #{4}–#{rest.length + 3}</span>
+                    </div>
+                    <p className="font-bold text-sm leading-snug mb-1.5 line-clamp-1">{idea.title}</p>
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <span style={{color:sc.dot}} className="text-[10px]">●</span>
+                      <span className={`text-[10px] font-semibold ${sc.color}`}>{idea.stage}</span>
+                      <span className={`text-[10px] ${T.muted}`}>· {idea.category}</span>
+                    </div>
+                    {/* Difficulty bar */}
+                    <div className={`h-1 w-full rounded-full overflow-hidden ${T.pbar}`}>
+                      <div className="h-full rounded-full" style={{width:`${idea.difficulty/5*100}%`,backgroundColor:dc.bar}}/>
+                    </div>
+                    {/* Footer */}
+                    <div className={`flex items-center justify-between mt-3 pt-3 border-t ${T.div}`}>
+                      <span className={`text-[11px] ${T.muted}`}>{idea.market_potential} market</span>
+                      <button
+                        onClick={e => handleUpvote(idea.id, idea.upvotes, e)}
+                        className={`flex items-center gap-1 text-[11px] font-black border px-2.5 py-1 rounded-lg transition-all active:scale-95 ${T.upvote}`}>
+                        <Ic.Up/> {idea.upvotes}
+                      </button>
+                    </div>
                   </div>
-                  <div className={`divide-y ${d ? 'divide-white/[0.05]' : 'divide-gray-100'}`}>
-                    {rest.map((idea, idx) => {
-                      const score = getScore(idea);
-                      const dc = DC[idea.difficulty];
-                      const scorePct = (score / maxScore) * 100;
-                      return (
-                        <div key={idea.id}
-                          onClick={() => setExpandedId(expandedId === idea.id ? null : idea.id)}
-                          className={`flex items-center gap-4 px-5 py-3.5 cursor-pointer transition-all ${d ? 'hover:bg-white/[0.04]' : 'hover:bg-gray-50'}`}
-                          style={{ animation: `fadeUp .3s ease-out ${idx * 40}ms both` }}>
-                          <span className={`shrink-0 w-7 text-center text-sm font-black ${T.muted}`}>#{idx + 4}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-sm truncate">{idea.title}</p>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <span style={{ color: SC[idea.stage as Stage].dot }} className="text-[9px]">●</span>
-                              <span className={`text-[10px] ${T.muted}`}>{idea.stage} · {idea.category}</span>
-                            </div>
-                          </div>
-                          <div className="w-24 hidden sm:block">
-                            <div className={`h-1.5 rounded-full overflow-hidden ${T.pbar}`}>
-                              <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all" style={{ width: `${scorePct}%` }} />
-                            </div>
-                          </div>
-                          <div className="hidden md:flex items-center gap-1.5">
-                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${MC[idea.market_potential].bg} ${MC[idea.market_potential].text}`}>{idea.market_potential}</span>
-                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${dc.bg} ${dc.text}`}>{dc.label}</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-amber-400 shrink-0">
-                            <Ic.Star /><span className="text-xs font-black">{score}</span>
-                          </div>
-                          <button onClick={e => handleUpvote(idea.id, idea.upvotes, e)}
-                            className={`shrink-0 flex items-center gap-1 text-[11px] font-black border px-2.5 py-1 rounded-lg transition-all active:scale-95 ${T.upvote}`}>
-                            <Ic.Up /> {idea.upvotes}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+                );
+              })}
             </div>
           </div>
         );
