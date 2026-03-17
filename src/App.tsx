@@ -7,12 +7,14 @@ type MarketPotential = 'Low' | 'Medium' | 'High' | 'Very High';
 type Stage = 'Concept' | 'Early Stage' | 'MVP' | 'Growth';
 type SortMode = 'newest' | 'popular' | 'easiest';
 type ViewMode = 'grid' | 'list';
-type Page = 'dashboard' | 'trending';
+type Page = 'dashboard' | 'trending' | 'my-ideas';
+type Visibility = 'Active' | 'Hidden' | 'Archived';
 type Idea = {
   id: string; title: string; description: string; problem_statement: string;
   category: string; difficulty: number; market_potential: MarketPotential;
   target_audience: string; revenue_model: string; stage: Stage;
   upvotes: number; created_at: string;
+  user_id?: string; visibility: Visibility; expires_at?: string; views: number; updated_at?: string;
 };
 
 const CATEGORIES = ['FinTech','HealthTech','EdTech','E-Commerce','AI/ML','SaaS','GreenTech','Social','Gaming','Other'];
@@ -43,7 +45,7 @@ const SC: Record<Stage,{color:string;dot:string;emoji:string}> = {
   'Growth':{color:'text-emerald-400',dot:'#10b981',emoji:'📈'},
 };
 
-function getScore(i: Idea) { return i.upvotes * 2 + MARKET_WEIGHT[i.market_potential] + (6 - i.difficulty); }
+function getScore(i: Idea) { return (MARKET_WEIGHT[i.market_potential] * 2) + i.difficulty + i.upvotes; }
 
 function exportCSV(ideas: Idea[]) {
   const h = ['Title','Category','Stage','Difficulty','Market','Revenue Model','Target Audience','Upvotes','Score','Description','Problem'];
@@ -137,6 +139,19 @@ export default function App() {
   const [filterRevenue,setFilterRevenue]=useState('All');
   const [sortBy,setSortBy]=useState<SortMode>('newest');
   const searchRef=useRef<HTMLInputElement>(null);
+  const [session, setSession] = useState<any>(null);
+  const [showAuth, setShowAuth] = useState(false);
+  const [authMode, setAuthMode] = useState<'login'|'register'>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [editingIdea, setEditingIdea] = useState<Idea|null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSession(session));
+    return () => subscription.unsubscribe();
+  }, []);
 
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
@@ -206,7 +221,7 @@ export default function App() {
   const t5Opacity = useTransform(scrollYProgress, [0.75, 0.85, 1], [0, 1, 1]);
   const t5Y       = useTransform(scrollYProgress, [0.75, 0.85, 1], [300, 0, 0]);
 
-  const [form,setForm]=useState({title:'',description:'',problem_statement:'',target_audience:'',revenue_model:REVENUE_MODELS[0],category:CATEGORIES[0],difficulty:3,market_potential:'High' as MarketPotential,stage:'Concept' as Stage});
+  const [form,setForm]=useState({title:'',description:'',problem_statement:'',target_audience:'',revenue_model:REVENUE_MODELS[0],category:CATEGORIES[0],difficulty:3,market_potential:'High' as MarketPotential,stage:'Concept' as Stage, visibility:'Active' as Visibility, expires_in:'never'});
 
   useEffect(()=>{document.documentElement.classList.toggle('dark',dark);},[dark]);
   useEffect(()=>{fetchIdeas();},[]);
@@ -214,12 +229,14 @@ export default function App() {
   useEffect(()=>{
     const h=(e:KeyboardEvent)=>{
       if(e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement||e.target instanceof HTMLSelectElement)return;
-      if(e.key==='n'||e.key==='N'){setShowForm(true);setFormError('');setFormSuccess(false);}
+      if(e.key==='n'||e.key==='N') {
+        if(!session) { setShowAuth(true); } else { setEditingIdea(null); setShowForm(true); setFormError(''); setFormSuccess(false); }
+      }
       if(e.key==='/'){{e.preventDefault();searchRef.current?.focus();}}
-      if(e.key==='Escape'){setShowForm(false);setExpandedId(null);}
+      if(e.key==='Escape'){setShowForm(false);setExpandedId(null);setShowAuth(false);}
     };
     window.addEventListener('keydown',h);return()=>window.removeEventListener('keydown',h);
-  },[]);
+  },[session]);
 
   const fetchIdeas=useCallback(async()=>{
     setLoading(true);
@@ -230,23 +247,79 @@ export default function App() {
 
   const ff=(k:string,v:string|number)=>setForm(p=>({...p,[k]:v}));
 
+  async function handleAuth(e:React.FormEvent) {
+    e.preventDefault(); setAuthError('');
+    if (authMode === 'register') {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        if (error.message.includes('security purposes')) setAuthError('Rate limit hit (timer): Please wait a few seconds before trying again.');
+        else setAuthError(error.message);
+      } else if (!data.session) {
+        setAuthError('Registration logged! Please check your email to confirm your account OR disable "Confirm Email" in Supabase Auth settings to login instantly.');
+      } else { 
+        setShowAuth(false); setEmail(''); setPassword(''); 
+      }
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        if (error.message.includes('Email not confirmed')) setAuthError('Login failed: Email not confirmed. Please check your inbox or disable "Confirm Email" in Supabase.');
+        else if (error.message.includes('security purposes')) setAuthError('Rate limit hit (timer): Please wait a few seconds before trying again.');
+        else setAuthError(error.message);
+      } else { 
+        setShowAuth(false); setEmail(''); setPassword(''); 
+      }
+    }
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+  }
+
   async function handleSubmit(e:React.FormEvent){
     e.preventDefault();setFormError('');
     if(!form.title.trim()||!form.description.trim()||!form.problem_statement.trim()||!form.target_audience.trim()) return setFormError('All starred fields are required.');
-    if(ideas.some(i=>i.title.toLowerCase()===form.title.toLowerCase().trim())) return setFormError('This title already exists.');
+    
+    let exp = null;
+    if (form.expires_in === '24h') { const d=new Date(); d.setHours(d.getHours()+24); exp=d.toISOString(); }
+    else if (form.expires_in === '7d') { const d=new Date(); d.setDate(d.getDate()+7); exp=d.toISOString(); }
+
+    const payload = {
+      title:form.title.trim(), description:form.description, problem_statement:form.problem_statement,
+      target_audience:form.target_audience, revenue_model:form.revenue_model, category:form.category,
+      difficulty:form.difficulty, market_potential:form.market_potential, stage:form.stage,
+      visibility:form.visibility, expires_at:exp
+    };
+
     setSubmitting(true);
-    const {error}=await supabase.from('startup_ideas').insert([{...form,title:form.title.trim()}]);
-    setSubmitting(false);
-    if(error)return setFormError('Submission failed: '+error.message);
-    setFormSuccess(true);confettiBurst();
-    setForm({title:'',description:'',problem_statement:'',target_audience:'',revenue_model:REVENUE_MODELS[0],category:CATEGORIES[0],difficulty:3,market_potential:'High',stage:'Concept'});
+    if (editingIdea) {
+      const {error}=await supabase.from('startup_ideas').update(payload).eq('id', editingIdea.id);
+      setSubmitting(false);
+      if(error)return setFormError('Update failed: '+error.message);
+    } else {
+      if(ideas.some(i=>i.title.toLowerCase()===form.title.toLowerCase().trim())) { setSubmitting(false); return setFormError('This title already exists.'); }
+      const {error}=await supabase.from('startup_ideas').insert([{...payload, user_id: session?.user?.id}]);
+      setSubmitting(false);
+      if(error)return setFormError('Submission failed: '+error.message);
+    }
+
+    setFormSuccess(true);
+    if (!editingIdea) confettiBurst();
+    setForm({title:'',description:'',problem_statement:'',target_audience:'',revenue_model:REVENUE_MODELS[0],category:CATEGORIES[0],difficulty:3,market_potential:'High' as MarketPotential,stage:'Concept' as Stage,visibility:'Active' as Visibility,expires_in:'never'});
+    setEditingIdea(null);
     fetchIdeas();setTimeout(()=>{setFormSuccess(false);setShowForm(false);},1800);
+  }
+
+  async function handleView(id:string){
+    if (expandedId === id) { setExpandedId(null); return; }
+    setExpandedId(id);
+    setIdeas(p=>p.map(i=>i.id===id?{...i,views:(i.views||0)+1}:i));
+    await supabase.rpc('increment_view_count', { idea_id: id });
   }
 
   async function handleUpvote(id:string,cur:number,e:React.MouseEvent){
     e.stopPropagation();
     setIdeas(p=>p.map(i=>i.id===id?{...i,upvotes:cur+1}:i));
-    await supabase.from('startup_ideas').update({upvotes:cur+1}).eq('id',id);
+    await supabase.rpc('increment_upvote', { idea_id: id });
   }
 
   function copyLink(idea:Idea,e:React.MouseEvent){
@@ -257,6 +330,11 @@ export default function App() {
 
   const filtered=useMemo(()=>{
     let list=[...ideas];
+    if (activePage === 'my-ideas') {
+      list = session ? list.filter(i=>i.user_id === session?.user?.id) : [];
+    } else {
+      list = list.filter(i=>i.visibility === 'Active' && (!i.expires_at || new Date(i.expires_at).getTime() > Date.now()));
+    }
     if(sortBy==='popular') list=list.sort((a,b)=>getScore(b)-getScore(a));
     if(sortBy==='easiest') list=list.sort((a,b)=>a.difficulty-b.difficulty);
     if(search.trim()) list=list.filter(i=>[i.title,i.description,i.category,i.target_audience,i.revenue_model,i.stage].join(' ').toLowerCase().includes(search.toLowerCase()));
@@ -266,14 +344,13 @@ export default function App() {
     if(filterStage!=='All') list=list.filter(i=>i.stage===filterStage);
     if(filterRevenue!=='All') list=list.filter(i=>i.revenue_model===filterRevenue);
     return list;
-  },[ideas,search,filterCat,filterDiff,filterMarket,filterStage,filterRevenue,sortBy]);
-
+  },[ideas,search,filterCat,filterDiff,filterMarket,filterStage,filterRevenue,sortBy,activePage,session]);
 
   const catBreakdown=useMemo(()=>{
-    const m:Record<string,number>={};ideas.forEach(i=>{m[i.category]=(m[i.category]||0)+1;});
+    const m:Record<string,number>={};filtered.forEach(i=>{m[i.category]=(m[i.category]||0)+1;});
     const mx=Math.max(...Object.values(m),1);
     return Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([cat,count])=>({cat,count,pct:(count/mx)*100,color:CAT_COLORS[CATEGORIES.indexOf(cat)%CAT_COLORS.length]}));
-  },[ideas]);
+  },[filtered]);
 
   const anyFilter=filterCat!=='All'||filterDiff!=='All'||filterMarket!=='All'||filterStage!=='All'||filterRevenue!=='All'||search;
   const activeFilterCount=[filterCat!=='All',filterDiff!=='All',filterMarket!=='All',filterStage!=='All',filterRevenue!=='All',!!search].filter(Boolean).length;
@@ -300,8 +377,20 @@ export default function App() {
   function IdeaCard({idea}:{idea:Idea}) {
     const score=getScore(idea); const dc=DC[idea.difficulty]; const mc=MC[idea.market_potential]; const sc=SC[idea.stage];
     const expanded=expandedId===idea.id;
+    const isOwner = session?.user?.id === idea.user_id;
+    function handleEdit(e: React.MouseEvent) {
+      e.stopPropagation(); setEditingIdea(idea);
+      setForm({
+        title:idea.title, description:idea.description, problem_statement:idea.problem_statement,
+        target_audience:idea.target_audience, revenue_model:idea.revenue_model, category:idea.category,
+        difficulty:idea.difficulty, market_potential:idea.market_potential, stage:idea.stage,
+        visibility:idea.visibility, expires_in:'never'
+      });
+      setShowForm(true);
+    }
+
     if(viewMode==='list') return(
-      <div onClick={()=>setExpandedId(expanded?null:idea.id)}
+      <div onClick={()=>handleView(idea.id)}
         className={`group border rounded-xl px-5 py-4 flex items-center gap-4 cursor-pointer transition-all duration-200 hover:-translate-y-px ${T.card}`}
         style={{animation:'fadeUp .25s ease-out both'}}>
         <div className="flex-1 min-w-0">
@@ -378,6 +467,11 @@ export default function App() {
               <Ic.Up/> {idea.upvotes>0?idea.upvotes:'Vote'}
             </button>
           </div>
+          {expanded && isOwner && (
+            <div className="mt-2 text-right">
+              <button onClick={handleEdit} className={`text-[11px] font-bold px-3 py-1.5 rounded-lg border transition-all ${d?'border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10':'border-indigo-200 text-indigo-600 hover:bg-indigo-50'}`}>✏️ Edit / Manage</button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -415,6 +509,7 @@ export default function App() {
             {([
               {label:'🏠 Dashboard', page:'dashboard' as Page},
               {label:'🔥 Trending', page:'trending' as Page},
+              ...(session ? [{label:'📁 My Ideas', page:'my-ideas' as Page}] : [])
             ]).map(({label,page})=>(
               <button key={page} onClick={()=>{setActivePage(page); setExpandedId(null);}}
                 className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all ${activePage===page?(d?'bg-indigo-600/20 text-indigo-300 border border-indigo-500/20':'bg-indigo-50 text-indigo-700 border border-indigo-200'):(d?'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent':'text-zinc-500 hover:text-zinc-900 hover:bg-gray-100 border border-transparent')}`}>
@@ -449,8 +544,13 @@ export default function App() {
             {/* Ideas count badge */}
             <div className={`hidden md:flex items-center gap-1.5 text-xs font-bold border rounded-full px-3 py-1.5 ${d?'bg-white/5 border-white/10 text-zinc-400':'bg-gray-100 border-gray-200 text-zinc-500'}`}>
               <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"/>
-              {ideas.length} ideas
+              {filtered.length} ideas
             </div>
+            {session ? (
+              <button onClick={handleLogout} className={`px-4 py-2 text-sm font-bold border rounded-xl transition-all hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 ${T.iconBtn}`}>Logout</button>
+            ) : (
+              <button onClick={()=>{setAuthMode('login'); setShowAuth(true);}} className={`px-4 py-2 text-sm font-bold border rounded-xl transition-all ${T.iconBtn}`}>Login</button>
+            )}
             <button onClick={()=>exportCSV(filtered)} title="Export CSV"
               className={`p-2.5 rounded-xl border transition-all hidden md:flex ${T.iconBtn}`}><Ic.DL/>
             </button>
@@ -458,7 +558,7 @@ export default function App() {
               className={`p-2.5 rounded-xl border transition-all ${T.iconBtn}`}>
               {d?<Ic.Sun/>:<Ic.Moon/>}
             </button>
-            <button onClick={()=>{setShowForm(true);setFormError('');setFormSuccess(false);}}
+            <button onClick={()=>{if(!session){setShowAuth(true);return;}setEditingIdea(null);setShowForm(true);setFormError('');setFormSuccess(false);}}
               className="flex items-center gap-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-500/20">
               <Ic.Plus/>
               <span className="hidden sm:inline">Submit Idea</span>
@@ -508,7 +608,7 @@ export default function App() {
                 <p className="text-lg md:text-xl max-w-2xl mx-auto leading-relaxed text-zinc-400 mb-10">
                   AI-powered insights, deep market analysis, and predictive success scoring. Stop guessing and start validating with data.
                 </p>
-                <button onClick={()=>{setShowForm(true);setFormError('');setFormSuccess(false);}}
+                <button onClick={()=>{if(!session){setShowAuth(true);return;}setEditingIdea(null);setShowForm(true);setFormError('');setFormSuccess(false);}}
                   className="pointer-events-auto group relative inline-flex items-center justify-center px-8 py-4 font-bold text-white transition-all duration-200 bg-transparent rounded-2xl overflow-hidden active:scale-95">
                   <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-purple-600 transition-all duration-200 group-hover:opacity-90"/>
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-20 bg-[radial-gradient(circle_at_center,white_0%,transparent_100%)] transition-opacity duration-200"/>
@@ -854,6 +954,23 @@ export default function App() {
       </div>
       )}
 
+      {/* ── My Ideas Page ── */}
+      {activePage === 'my-ideas' && session && (
+      <div className="max-w-7xl mx-auto px-6 pt-12">
+          <h2 className="text-3xl font-black mb-8">My Ideas</h2>
+          {filtered.length === 0 ? (
+            <div className={`text-center py-20 border rounded-[2rem] border-dashed ${T.div}`}>
+              <div className="text-4xl mb-4">🗂</div>
+              <p className={`font-bold ${T.sub}`}>You haven't submitted any ideas yet.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pb-20">
+              {filtered.map(idea => <IdeaCard key={idea.id} idea={idea} />)}
+            </div>
+          )}
+      </div>
+      )}
+
       {/* Submit Modal */}
       {showForm&&(
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" onClick={e=>e.target===e.currentTarget&&setShowForm(false)}>
@@ -869,8 +986,10 @@ export default function App() {
               <>
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h2 className="text-lg font-black flex items-center gap-2"><Ic.Bulb/> New Startup Idea</h2>
-                    <p className={`text-xs mt-0.5 ${T.muted}`}>Starred ( * ) fields are required · Shortcut: N</p>
+                    <h2 className="text-lg font-black flex items-center gap-2">
+                       <Ic.Bulb/> {editingIdea ? 'Edit Idea' : 'New Startup Idea'}
+                    </h2>
+                    <p className={`text-xs mt-0.5 ${T.muted}`}>Starred ( * ) fields are required {!editingIdea&&'· Shortcut: N'}</p>
                   </div>
                   <button onClick={()=>setShowForm(false)} className={`p-2 rounded-xl transition-all ${T.iconBtn}`}><Ic.X/></button>
                 </div>
@@ -918,8 +1037,32 @@ export default function App() {
                       </select>
                     </div>
                   </div>
+                  
+                  {/* Visibility & Expiry */}
+                  <div className="grid grid-cols-2 gap-3 pb-2 border-b border-white/5">
+                    {editingIdea ? (
+                      <div>
+                        <label className={`block text-[10px] font-black uppercase tracking-widest mb-1.5 ${T.muted}`}>Visibility</label>
+                        <select value={form.visibility} onChange={e=>ff('visibility',e.target.value)} className={`${inputCls} cursor-pointer`}>
+                          <option value="Active">Active (Public)</option>
+                          <option value="Hidden">Hidden (Private)</option>
+                          <option value="Archived">Archived</option>
+                        </select>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className={`block text-[10px] font-black uppercase tracking-widest mb-1.5 ${T.muted}`}>Expires In</label>
+                        <select value={form.expires_in} onChange={e=>ff('expires_in',e.target.value)} className={`${inputCls} cursor-pointer`}>
+                          <option value="never">Never (Permanent)</option>
+                          <option value="24h">24 Hours</option>
+                          <option value="7d">7 Days</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
                   <button type="submit" disabled={submitting} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl py-3.5 transition-all active:scale-[0.98] disabled:opacity-50 shadow-xl shadow-indigo-500/20">
-                    {submitting?'Submitting…':'🚀 Submit Idea'}
+                    {submitting ? 'Saving…' : (editingIdea ? '🚀 Update Idea' : '🚀 Submit Idea')}
                   </button>
                 </form>
               </>
@@ -927,6 +1070,40 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Auth Modal */}
+      {showAuth&&(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className={`w-full max-w-sm rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 ${T.modal}`}>
+            <div className="p-8">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-black">{authMode === 'login' ? 'Welcome Back' : 'Create Account'}</h2>
+                <button onClick={()=>setShowAuth(false)} className={`p-2 rounded-xl transition-all ${T.iconBtn}`}><Ic.X/></button>
+              </div>
+              {authError&&<div className="mb-4 p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">{authError}</div>}
+              <form onSubmit={handleAuth} className="space-y-4">
+                <div>
+                  <label className={`block text-[10px] font-black uppercase tracking-widest mb-1.5 ${T.muted}`}>Email</label>
+                  <input type="email" value={email} onChange={e=>setEmail(e.target.value)} required className={inputCls}/>
+                </div>
+                <div>
+                  <label className={`block text-[10px] font-black uppercase tracking-widest mb-1.5 ${T.muted}`}>Password</label>
+                  <input type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={6} className={inputCls}/>
+                </div>
+                <button type="submit" className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl py-3.5 mt-2 transition-all active:scale-[0.98]">
+                  {authMode === 'login' ? 'Sign In' : 'Sign Up'}
+                </button>
+              </form>
+              <div className="mt-6 text-center">
+                <button onClick={()=>{setAuthMode(authMode==='login'?'register':'login'); setAuthError('');}} className={`text-sm tracking-wide font-semibold ${T.sub} hover:text-indigo-400`}>
+                  {authMode === 'login' ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
     </div>
   );
