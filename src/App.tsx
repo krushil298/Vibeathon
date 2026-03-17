@@ -167,17 +167,23 @@ export default function App() {
   const t1Scale   = useTransform(scrollYProgress, [0, 0.20], [1, 0.9]);
 
   const t2Opacity = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [0, 1, 1, 0]);
-  const t2Y       = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [100, 0, 0, -100]);
+  const t2X       = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [-1000, 0, 0, -1000]);
+  const t2Y       = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [500, 0, 0, -500]);
+  const t2Rotate  = useTransform(scrollYProgress, [0.15, 0.25, 0.35, 0.40], [-15, 0, 0, 15]);
 
   const t3Opacity = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [0, 1, 1, 0]);
-  const t3Y       = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [100, 0, 0, -100]);
+  const t3X       = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [1000, 0, 0, 1000]);
+  const t3Y       = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [500, 0, 0, -500]);
+  const t3Rotate  = useTransform(scrollYProgress, [0.35, 0.45, 0.55, 0.60], [15, 0, 0, -15]);
 
   const t4Opacity = useTransform(scrollYProgress, [0.55, 0.65, 0.75, 0.80], [0, 1, 1, 0]);
-  const t4Y       = useTransform(scrollYProgress, [0.55, 0.65, 0.75, 0.80], [100, 0, 0, -100]);
-  const t4RotateX = useTransform(scrollYProgress, [0.55, 0.65, 0.75, 0.80], [30, 0, 0, -30]);
+  const t4X       = useTransform(scrollYProgress, [0.55, 0.65, 0.75, 0.80], [-1000, 0, 0, -1000]);
+  const t4Y       = useTransform(scrollYProgress, [0.55, 0.65, 0.75, 0.80], [500, 0, 0, -500]);
+  const t4RotateX = useTransform(scrollYProgress, [0.55, 0.65, 0.75, 0.80], [45, 0, 0, -45]);
+  const t4RotateY = useTransform(scrollYProgress, [0.55, 0.65, 0.75, 0.80], [-30, 0, 0, 30]);
 
   const t5Opacity = useTransform(scrollYProgress, [0.75, 0.85, 1], [0, 1, 1]);
-  const t5Y       = useTransform(scrollYProgress, [0.75, 0.85, 1], [100, 0, 0]);
+  const t5Y       = useTransform(scrollYProgress, [0.75, 0.85, 1], [300, 0, 0]);
 
   const [form,setForm]=useState({title:'',description:'',problem_statement:'',target_audience:'',revenue_model:REVENUE_MODELS[0],category:CATEGORIES[0],difficulty:3,market_potential:'High' as MarketPotential,stage:'Concept' as Stage});
 
@@ -491,7 +497,7 @@ export default function App() {
             </motion.div>
 
             {/* STAGE 2: How It Works */}
-            <motion.div style={{ opacity: t2Opacity, y: t2Y }} className="absolute text-center flex flex-col items-center w-full max-w-6xl px-4">
+            <motion.div style={{ opacity: t2Opacity, x: t2X, y: t2Y, rotate: t2Rotate }} className="absolute text-center flex flex-col items-center w-full max-w-6xl px-4">
               <h2 className="text-4xl md:text-5xl font-black text-white mb-16 tracking-tight">How It Works</h2>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 w-full">
                 {[
@@ -511,7 +517,7 @@ export default function App() {
             </motion.div>
 
             {/* STAGE 3: Features */}
-            <motion.div style={{ opacity: t3Opacity, y: t3Y }} className="absolute text-center flex flex-col items-center w-full max-w-5xl">
+            <motion.div style={{ opacity: t3Opacity, x: t3X, y: t3Y, rotate: t3Rotate }} className="absolute text-center flex flex-col items-center w-full max-w-5xl">
               <h2 className="text-4xl md:text-5xl font-black text-white mb-12 tracking-tight">Unfair Advantages</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                 {[
@@ -532,7 +538,7 @@ export default function App() {
             </motion.div>
 
             {/* STAGE 4: Live Dashboard Preview (3D Mock) */}
-            <motion.div style={{ opacity: t4Opacity, y: t4Y, rotateX: t4RotateX }} className="absolute flex items-center justify-center w-full max-w-5xl [transform-style:preserve-3d]">
+            <motion.div style={{ opacity: t4Opacity, x: t4X, y: t4Y, rotateX: t4RotateX, rotateY: t4RotateY }} className="absolute flex items-center justify-center w-full max-w-5xl [transform-style:preserve-3d]">
               <div className="w-full bg-[#0a0a0f] border border-white/10 rounded-[2rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-hidden">
                 {/* Mac Header Mock */}
                 <div className="bg-white/5 border-b border-white/10 px-6 py-4 flex items-center gap-2">
