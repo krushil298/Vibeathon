@@ -140,29 +140,27 @@ export default function App() {
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
 
-  // Slide 1 Transforms (Main Intro) -> active from 0 to 0.25, shrinks backwards 0.25 to 0.40
-  const s1Scale   = useTransform(scrollYProgress, [0, 0.25, 0.40], [1, 1, 0.90]);
-  const s1Y       = useTransform(scrollYProgress, [0, 0.25, 0.40], [0, 0, -40]);
-  const s1Opacity = useTransform(scrollYProgress, [0, 0.25, 0.40, 0.50], [1, 1, 0.5, 0]);
-  const s1RotateX = useTransform(scrollYProgress, [0, 0.25, 0.40], [0, 0, 10]);
+  // --- Central 3D Object Transforms ---
+  const bgScale = useTransform(scrollYProgress, [0, 0.5, 1], [0.8, 1.2, 0.9]);
+  const bgRotateX = useTransform(scrollYProgress, [0, 1], [40, -10]);
+  const bgRotateY = useTransform(scrollYProgress, [0, 1], [-20, 30]);
 
-  // Slide 2 Transforms (Pitch Ideas) -> enters 0.15 to 0.35, shrinks backwards 0.50 to 0.65
-  const s2Scale   = useTransform(scrollYProgress, [0.15, 0.35, 0.50, 0.65], [0.8, 1, 1, 0.90]);
-  const s2Y       = useTransform(scrollYProgress, [0.15, 0.35, 0.50, 0.65], [1000, 0, 0, -40]);
-  const s2Opacity = useTransform(scrollYProgress, [0.15, 0.35, 0.50, 0.65, 0.75], [0, 1, 1, 0.5, 0]);
-  const s2RotateX = useTransform(scrollYProgress, [0.15, 0.35, 0.50, 0.65], [-15, 0, 0, 10]);
+  // --- Text Slides Opacity & Y Translates ---
+  // Slide 1: Intro (Visbible 0 to 0.2)
+  const t1Opacity = useTransform(scrollYProgress, [0, 0.15, 0.25], [1, 1, 0]);
+  const t1Y       = useTransform(scrollYProgress, [0, 0.25], [0, -50]);
 
-  // Slide 3 Transforms (Explore) -> enters 0.40 to 0.60, shrinks backwards 0.75 to 0.90
-  const s3Scale   = useTransform(scrollYProgress, [0.40, 0.60, 0.75, 0.90], [0.8, 1, 1, 0.90]);
-  const s3Y       = useTransform(scrollYProgress, [0.40, 0.60, 0.75, 0.90], [1000, 0, 0, -40]);
-  const s3Opacity = useTransform(scrollYProgress, [0.40, 0.60, 0.75, 0.90, 1], [0, 1, 1, 0.5, 0]);
-  const s3RotateX = useTransform(scrollYProgress, [0.40, 0.60, 0.75, 0.90], [-15, 0, 0, 10]);
+  // Slide 2: Pitch (Visible 0.2 to 0.45)
+  const t2Opacity = useTransform(scrollYProgress, [0.15, 0.25, 0.40, 0.50], [0, 1, 1, 0]);
+  const t2Y       = useTransform(scrollYProgress, [0.15, 0.25, 0.40, 0.50], [50, 0, 0, -50]);
 
-  // Slide 4 Transforms (Compete) -> enters 0.65 to 0.85
-  const s4Scale   = useTransform(scrollYProgress, [0.65, 0.85], [0.8, 1]);
-  const s4Y       = useTransform(scrollYProgress, [0.65, 0.85], [1000, 0]);
-  const s4Opacity = useTransform(scrollYProgress, [0.65, 0.85], [0, 1]);
-  const s4RotateX = useTransform(scrollYProgress, [0.65, 0.85], [-15, 0]);
+  // Slide 3: Explore (Visible 0.45 to 0.70)
+  const t3Opacity = useTransform(scrollYProgress, [0.40, 0.50, 0.65, 0.75], [0, 1, 1, 0]);
+  const t3Y       = useTransform(scrollYProgress, [0.40, 0.50, 0.65, 0.75], [50, 0, 0, -50]);
+
+  // Slide 4: Compete (Visible 0.70 to 1)
+  const t4Opacity = useTransform(scrollYProgress, [0.65, 0.75, 1], [0, 1, 1]);
+  const t4Y       = useTransform(scrollYProgress, [0.65, 0.75, 1], [50, 0, 0]);
 
   const [form,setForm]=useState({title:'',description:'',problem_statement:'',target_audience:'',revenue_model:REVENUE_MODELS[0],category:CATEGORIES[0],difficulty:3,market_potential:'High' as MarketPotential,stage:'Concept' as Stage});
 
@@ -436,99 +434,94 @@ export default function App() {
       <>
       {/* ── Hero Section ── */}
       <section ref={heroRef} className="relative h-[400vh]">
-        <div className={`sticky top-16 h-[calc(100vh-64px)] w-full overflow-hidden flex items-center justify-center [perspective:1200px] border-b ${T.div}`}>
-          {/* Main background */}
+        <div className={`sticky top-16 h-[calc(100vh-64px)] w-full overflow-hidden flex items-center justify-center [perspective:1000px] border-b ${T.div}`}>
+          {/* Main static backdrop */}
           <div className="absolute inset-0 pointer-events-none">
-            <div className={`absolute inset-0 ${d?'bg-[#050508]':'bg-slate-50'}`}/>
+            <div className={`absolute inset-0 ${d?'bg-[#020202]':'bg-[#f5f5f7]'}`}/>
           </div>
           
-          {/* SLIDE 1: Main Intro */}
+          {/* The Central Twisting 3D Object (Kontenta/Apple style glass container) */}
           <motion.div 
-            style={{ scale: s1Scale, rotateX: s1RotateX, opacity: s1Opacity, y: s1Y }}
-            className={`absolute w-[90%] max-w-5xl h-[70vh] rounded-[2.5rem] border flex flex-col items-center justify-center p-8 origin-top shadow-2xl overflow-hidden ${d?'bg-[#0a0a0c] border-[#222] shadow-black/80':'bg-white border-slate-200 shadow-slate-200/50'}`}
+            style={{ scale: bgScale, rotateX: bgRotateX, rotateY: bgRotateY }}
+            className={`absolute w-[80%] md:w-[60%] max-w-4xl aspect-[4/3] rounded-[3rem] md:rounded-[4rem] border flex items-center justify-center p-8 origin-center shadow-2xl overflow-hidden pointer-events-none ${d?'bg-[#111116]/80 border-white/5 shadow-[0_0_100px_rgba(0,0,0,1)]':'bg-white/80 border-black/5 shadow-[0_0_60px_rgba(0,0,0,0.1)]'} backdrop-blur-2xl`}
           >
-            {/* Very subtle glow */}
-            <div className={`absolute top-0 right-1/4 w-[400px] h-[400px] rounded-full blur-[100px] pointer-events-none ${d?'bg-indigo-500/5':'bg-indigo-500/10'}`}/>
+            {/* Inner dynamic lighting/mesh inside the object */}
+            <div className={`absolute inset-0 bg-gradient-to-br opacity-50 ${d?'from-indigo-500/10 via-purple-500/5 to-transparent':'from-indigo-400/5 via-purple-400/5 to-transparent'}`}/>
+            <div className={`absolute top-0 right-1/4 w-[300px] h-[300px] rounded-full blur-[80px] ${d?'bg-indigo-600/20':'bg-indigo-300/30'}`}/>
+            <div className={`absolute bottom-0 left-1/4 w-[400px] h-[400px] rounded-full blur-[100px] ${d?'bg-purple-600/10':'bg-purple-300/20'}`}/>
+            <div className="absolute inset-0 border border-white/10 rounded-[3rem] md:rounded-[4rem] mix-blend-overlay"/>
+          </motion.div>
+
+          {/* Foreground Text Track - Centered Overlays */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-6">
             
-            <div className={`inline-flex items-center gap-2 border rounded-full px-4 py-1.5 text-xs font-bold mb-6 relative z-10 ${d?'bg-white/5 border-white/10 text-zinc-300':'bg-indigo-50 border-indigo-200 text-indigo-600'}`}>
-              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"/> Startup Idea Validator · Vibeathon 2026
-            </div>
-            <h1 className={`text-4xl md:text-6xl font-black tracking-tight leading-tight mb-4 text-center relative z-10 ${d?'text-zinc-100':'text-zinc-900'}`}>
-              <span className="bg-gradient-to-r from-indigo-400 to-indigo-600 bg-clip-text text-transparent">Validate.</span>{' '}
-              <span className="bg-gradient-to-r from-zinc-400 to-zinc-600 bg-clip-text text-transparent">Compare.</span>{' '}
-              <span>Ship.</span>
-            </h1>
-            <p className={`text-base md:text-lg max-w-xl text-center mx-auto leading-relaxed relative z-10 ${d?'text-zinc-400':'text-zinc-500'}`}>
-              Scroll to explore what makes IdeaVault the best place to launch your next big thing.
-            </p>
-          </motion.div>
+            {/* SLIDE 1: Intro */}
+            <motion.div style={{ opacity: t1Opacity, y: t1Y }} className="absolute text-center flex flex-col items-center">
+              <div className={`inline-flex items-center gap-2 border rounded-full px-4 py-1.5 text-xs font-bold mb-6 ${d?'bg-white/5 border-white/10 text-zinc-300':'bg-black/5 border-black/10 text-zinc-600'}`}>
+                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"/> IdeaVault
+              </div>
+              <h1 className={`text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[1.1] mb-6 ${d?'text-zinc-100':'text-zinc-900'}`}>
+                Validate. <br/><span className="text-indigo-400">Compare.</span> <br/>Ship.
+              </h1>
+              <p className={`text-lg md:text-xl max-w-lg mx-auto leading-relaxed ${d?'text-zinc-400':'text-zinc-500'}`}>
+                The intelligence platform for builders. Market-test your startup ideas globally before you write a single line of code.
+              </p>
+            </motion.div>
 
-          {/* SLIDE 2: Pitch Ideas */}
-          <motion.div 
-            style={{ scale: s2Scale, rotateX: s2RotateX, opacity: s2Opacity, y: s2Y }}
-            className={`absolute w-[90%] max-w-5xl h-[70vh] rounded-[2.5rem] border flex flex-col items-center justify-center p-8 origin-top shadow-2xl overflow-hidden ${d?'bg-[#0c0a0f] border-[#222] shadow-black/80':'bg-white border-slate-200 shadow-slate-200/50'}`}
-          >
-            <div className={`absolute inset-0 bg-gradient-to-br opacity-30 ${d?'from-purple-500/10 to-transparent':'from-purple-400/10 to-transparent'} pointer-events-none`}/>
-            <div className={`text-5xl md:text-7xl mb-6 flex items-center justify-center w-24 h-24 rounded-full ${d?'bg-white/5 border border-white/10':'bg-purple-50 border border-purple-100'} relative z-10`}>💡</div>
-            <h1 className={`text-4xl md:text-5xl font-black tracking-tight leading-tight mb-6 text-center relative z-10 ${d?'text-zinc-100':'text-zinc-900'}`}>
-              Pitch Your Wildest Ideas
-            </h1>
-            <p className={`text-base md:text-lg max-w-xl text-center mx-auto leading-relaxed relative z-10 ${d?'text-zinc-400':'text-zinc-500'}`}>
-              Define your problem statement, target audience, and business model. Get your concept out of your head and into the world where developers and founders can see it.
-            </p>
-          </motion.div>
+            {/* SLIDE 2: Pitch */}
+            <motion.div style={{ opacity: t2Opacity, y: t2Y }} className="absolute text-center flex flex-col items-center">
+              <div className="text-7xl mb-6">💡</div>
+              <h1 className={`text-4xl md:text-6xl font-black tracking-tighter leading-tight mb-6 ${d?'text-zinc-100':'text-zinc-900'}`}>
+                Pitch Your Ambitions
+              </h1>
+              <p className={`text-lg md:text-xl max-w-xl mx-auto leading-relaxed ${d?'text-zinc-400':'text-zinc-500'}`}>
+                Define your exact problem statement, target audience, and business model. Publish your concepts to a global think-tank of founders and operators instantly.
+              </p>
+            </motion.div>
 
-          {/* SLIDE 3: Explore */}
-          <motion.div 
-            style={{ scale: s3Scale, rotateX: s3RotateX, opacity: s3Opacity, y: s3Y }}
-            className={`absolute w-[90%] max-w-5xl h-[70vh] rounded-[2.5rem] border flex flex-col items-center justify-center p-8 origin-top shadow-2xl overflow-hidden ${d?'bg-[#0a0c0f] border-[#222] shadow-black/80':'bg-white border-slate-200 shadow-slate-200/50'}`}
-          >
-            <div className={`absolute inset-0 bg-gradient-to-bl opacity-30 ${d?'from-blue-500/10 to-transparent':'from-blue-400/10 to-transparent'} pointer-events-none`}/>
-            <div className={`text-5xl md:text-7xl mb-6 flex items-center justify-center w-24 h-24 rounded-full ${d?'bg-white/5 border border-white/10':'bg-blue-50 border border-blue-100'} relative z-10`}>🔍</div>
-            <h1 className={`text-4xl md:text-5xl font-black tracking-tight leading-tight mb-6 text-center relative z-10 ${d?'text-zinc-100':'text-zinc-900'}`}>
-              Explore the Market
-            </h1>
-            <p className={`text-base md:text-lg max-w-xl text-center mx-auto leading-relaxed relative z-10 ${d?'text-zinc-400':'text-zinc-500'}`}>
-              Filter through FinTech, AI, SaaS and more. Analyze Difficulty and Market Potential tags to find the perfect pivot or your next weekend project.
-            </p>
-          </motion.div>
+            {/* SLIDE 3: Explore */}
+            <motion.div style={{ opacity: t3Opacity, y: t3Y }} className="absolute text-center flex flex-col items-center">
+              <div className="text-7xl mb-6">🔍</div>
+              <h1 className={`text-4xl md:text-6xl font-black tracking-tighter leading-tight mb-6 ${d?'text-zinc-100':'text-zinc-900'}`}>
+                Analyze The Market
+              </h1>
+              <p className={`text-lg md:text-xl max-w-xl mx-auto leading-relaxed ${d?'text-zinc-400':'text-zinc-500'}`}>
+                Filter by industry constraints. Identify high-potential models in FinTech, AI, and SaaS. We map difficulty against revenue potential so you can pivot precisely.
+              </p>
+            </motion.div>
 
-          {/* SLIDE 4: Compete (Trending + CTAs) */}
-          <motion.div 
-            style={{ scale: s4Scale, rotateX: s4RotateX, opacity: s4Opacity, y: s4Y }}
-            className={`absolute w-[90%] max-w-5xl h-[70vh] rounded-[2.5rem] border flex flex-col items-center justify-center p-8 origin-top shadow-2xl overflow-hidden ${d?'bg-[#0e0c0a] border-[#222] shadow-black/80':'bg-white border-slate-200 shadow-slate-200/50'}`}
-          >
-            <div className={`absolute inset-0 bg-gradient-to-t opacity-30 ${d?'from-orange-500/10 to-transparent':'from-orange-400/10 to-transparent'} pointer-events-none`}/>
-            <div className={`text-5xl md:text-7xl mb-4 flex items-center justify-center w-24 h-24 rounded-full ${d?'bg-white/5 border border-white/10':'bg-orange-50 border border-orange-100'} relative z-10`}>🔥</div>
-            <h1 className={`text-4xl md:text-5xl font-black tracking-tight leading-tight mb-8 text-center relative z-10 ${d?'text-zinc-100':'text-zinc-900'}`}>
-              Climb the Trending Charts
-            </h1>
-            
-            <div className="flex flex-wrap items-center justify-center gap-3 mb-10 relative z-10">
-              <button onClick={()=>{setShowForm(true);setFormError('');setFormSuccess(false);}}
-                className={`flex items-center gap-2 font-bold px-8 py-4 rounded-2xl transition-all active:scale-95 shadow-lg text-base pointer-events-auto ${d?'bg-white text-black hover:bg-zinc-200':'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
-                <Ic.Plus/> Submit Your Idea
-              </button>
-              <button onClick={()=>{setActivePage('trending'); setExpandedId(null);}}
-                className={`flex items-center gap-2 border font-semibold px-8 py-4 rounded-2xl transition-all text-base pointer-events-auto ${d?'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10':'bg-white border-slate-300 text-zinc-700 hover:bg-slate-50 shadow-sm'}`}>
-                View Trending
-              </button>
-            </div>
+            {/* SLIDE 4: Compete / Trending */}
+            <motion.div style={{ opacity: t4Opacity, y: t4Y }} className="absolute text-center flex flex-col items-center w-full max-w-4xl">
+              <div className="text-7xl mb-6">🔥</div>
+              <h1 className={`text-4xl md:text-6xl font-black tracking-tighter leading-tight mb-10 ${d?'text-zinc-100':'text-zinc-900'}`}>
+                Climb The Trends
+              </h1>
+              
+              <div className="flex flex-wrap items-center justify-center gap-4 mb-12">
+                <button onClick={()=>{setShowForm(true);setFormError('');setFormSuccess(false);}}
+                  className={`flex items-center gap-2 font-bold px-8 py-4 rounded-2xl transition-all active:scale-95 shadow-xl text-base pointer-events-auto ${d?'bg-white text-black hover:bg-zinc-200':'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
+                  <Ic.Plus/> Start Building
+                </button>
+                <button onClick={()=>{setActivePage('trending'); setExpandedId(null);}}
+                  className={`flex items-center gap-2 border font-semibold px-8 py-4 rounded-2xl transition-all text-base pointer-events-auto ${d?'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10 backdrop-blur-md':'bg-black/5 border-black/10 text-zinc-700 hover:bg-black/10 backdrop-blur-md shadow-sm'}`}>
+                  View Trending Now
+                </button>
+              </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-6 md:gap-12 relative z-10">
-              {[
-                {emoji:'📊', val:stats.total,       label:'Total Ideas'},
-                {emoji:'👑', val:stats.topCat,      label:'Top Category'},
-                {emoji:'⚙️', val:stats.avgDiff!=='—'?stats.avgDiff+'/5':'—', label:'Avg Difficulty'},
-                {emoji:'⭐', val:stats.avgScore!=='—'?stats.avgScore+' pts':'—', label:'Avg Popularity'},
-              ].map((s,i)=>(
-                <div key={i} className={`text-center px-4 py-3 rounded-2xl border ${d?'bg-white/5 border-white/10':'bg-white/50 border-slate-200/50 backdrop-blur-sm'}`}>
-                  <div className={`text-2xl md:text-3xl font-black ${d?'text-zinc-100':'text-zinc-900'}`}>{s.val}</div>
-                  <div className={`text-xs font-semibold mt-1 uppercase tracking-wider ${d?'text-zinc-400':'text-zinc-500'}`}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
+              <div className="flex flex-wrap items-center justify-center gap-6 md:gap-12 w-full">
+                {[
+                  {val:stats.total, label:'Global Ideas'},
+                  {val:stats.topCat, label:'Top Sector'},
+                  {val:stats.avgDiff!=='—'?stats.avgDiff+'/5':'—', label:'Avg Friction'},
+                ].map((s,i)=>(
+                  <div key={i} className={`text-center px-6 py-4 rounded-2xl border flex-1 min-w-[140px] max-w-[200px] ${d?'bg-white/5 border-white/10 backdrop-blur-xl':'bg-white/50 border-black/5 backdrop-blur-xl'}`}>
+                    <div className={`text-3xl md:text-4xl font-black tracking-tight ${d?'text-zinc-100':'text-zinc-900'}`}>{s.val}</div>
+                    <div className={`text-xs font-bold mt-2 uppercase tracking-widest ${d?'text-zinc-500':'text-zinc-400'}`}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
         </div>
       </section>
       </>
