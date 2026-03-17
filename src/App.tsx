@@ -624,88 +624,126 @@ export default function App() {
       {/* ── Dashboard Page ── */}
       {activePage === 'dashboard' && (
       <>
-      {/* ── Hero Section (Futuristic Landing Page) ── */}
+      {/* ── Hero Section ── */}
       <section ref={heroRef} className="relative h-[500vh]">
-        <div 
+        <div
           onMouseMove={handleMouseMove}
-          className="sticky top-16 h-[calc(100vh-64px)] w-full overflow-hidden flex items-center justify-center [perspective:1200px] border-b bg-[#050508]"
+          className="sticky top-16 h-[calc(100vh-64px)] w-full overflow-hidden flex items-center justify-center bg-[#030305]"
         >
-          {/* Animated Particles and Globs Backdrop */}
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <motion.div style={{ x: bg1X, y: bg1Y, scale: bg1Scale }} className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-[150px] animate-[pulse_4s_ease-in-out_infinite]"/>
-            <motion.div style={{ x: bg2X, y: bg2Y, scale: bg2Scale }} className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[150px] animate-[pulse_6s_ease-in-out_infinite]"/>
+          {/* Rich animated background */}
+          <div className="absolute inset-0 pointer-events-none">
+            {/* Grid lines */}
+            <div className="absolute inset-0 opacity-[0.03]" style={{backgroundImage:'linear-gradient(rgba(255,255,255,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.5) 1px,transparent 1px)',backgroundSize:'60px 60px'}}/>
+            {/* Glow orbs */}
+            <motion.div style={{ x: bg1X, y: bg1Y, scale: bg1Scale }} className="absolute top-[-10%] left-[-5%] w-[700px] h-[700px] bg-cyan-500/8 rounded-full blur-[180px]"/>
+            <motion.div style={{ x: bg2X, y: bg2Y, scale: bg2Scale }} className="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] bg-purple-600/8 rounded-full blur-[180px]"/>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[120px]"/>
           </div>
 
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-6">
-            
-            {/* STAGE 1: Hero */}
+          <div className="absolute inset-0 flex items-center justify-center px-4 md:px-8">
+
+            {/* ── STAGE 1: Hero ── */}
             <motion.div style={{ opacity: t1Opacity, y: t1Y, scale: t1Scale, zIndex: 1, pointerEvents: 'auto' }} className="absolute inset-0 flex items-center justify-center">
-              
-              {/* Background Parallax Mock Cards */}
-              <motion.div style={{ x: pxBack, y: pyBack, rotate:-5 }} className="absolute top-1/4 left-[10%] w-64 h-32 bg-white/[0.02] border border-white/5 rounded-2xl backdrop-blur-md p-4 hidden lg:flex flex-col gap-3 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
-                <div className="h-3 w-1/3 bg-cyan-400/10 rounded-full"/>
-                <div className="flex gap-2"><div className="h-8 flex-1 bg-white/5 rounded-lg"/><div className="h-8 flex-1 bg-white/5 rounded-lg"/></div>
+              {/* Floating stat cards */}
+              <motion.div style={{ x: pxBack, y: pyBack }} className="absolute top-[12%] left-[4%] hidden xl:flex flex-col gap-2 bg-white/[0.04] border border-white/8 backdrop-blur-xl rounded-2xl p-4 w-52 shadow-2xl">
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Market Size</p>
+                <p className="text-2xl font-black text-white">$4.2B</p>
+                <div className="flex items-center gap-1.5"><span className="text-emerald-400 text-xs font-bold">↑ 32%</span><span className="text-zinc-600 text-xs">YoY growth</span></div>
+                <div className="h-1 bg-white/5 rounded-full mt-1"><div className="h-full w-3/4 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full"/></div>
               </motion.div>
-              
-              <motion.div style={{ x: pxFront, y: pyFront, rotate:5 }} className="absolute bottom-1/4 right-[10%] w-56 h-40 bg-white/[0.02] border border-purple-500/10 rounded-2xl backdrop-blur-xl p-4 hidden lg:flex flex-col justify-between shadow-[0_0_50px_rgba(0,0,0,0.8)]">
-                <div className="h-4 w-1/2 bg-purple-400/10 rounded-full"/>
-                <div className="w-full h-16 bg-gradient-to-r from-purple-500/5 to-cyan-500/5 rounded-xl rounded-b-none border-t border-white/5 mt-auto"/>
+              <motion.div style={{ x: pxFront, y: pyFront }} className="absolute bottom-[15%] right-[4%] hidden xl:flex flex-col gap-3 bg-white/[0.04] border border-purple-500/20 backdrop-blur-xl rounded-2xl p-4 w-48 shadow-2xl">
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">AI Score</p>
+                <div className="flex items-end gap-2"><span className="text-5xl font-black text-white leading-none">94</span><span className="text-emerald-400 text-sm font-bold mb-1">/ 100</span></div>
+                <div className="flex gap-1">{[1,2,3,4,5].map(s=><div key={s} className={`h-1.5 flex-1 rounded-full ${s<=4?'bg-gradient-to-r from-cyan-500 to-purple-500':'bg-white/10'}`}/>)}</div>
+              </motion.div>
+              <motion.div style={{ x: useTransform(springX,[-1,1],[15,-15]), y: useTransform(springY,[-1,1],[-10,10]) }} className="absolute top-[18%] right-[6%] hidden lg:flex flex-col gap-1.5 bg-white/[0.03] border border-indigo-500/20 backdrop-blur-xl rounded-2xl p-4 w-44 shadow-xl">
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Competitors</p>
+                <p className="text-xl font-black text-white">3 Found</p>
+                <p className="text-[11px] text-zinc-500">Low saturation</p>
               </motion.div>
 
-              <div className="text-center flex flex-col items-center relative z-10 w-full max-w-5xl bg-black/20 backdrop-blur-sm p-12 rounded-[3rem] border border-white/5 shadow-2xl">
-                <div className="inline-flex items-center gap-2 border rounded-full px-5 py-2 text-xs font-bold mb-8 bg-cyan-950/30 border-cyan-500/30 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
-                  <span className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(6,182,212,1)]"/> IdeaVault 2.0 AI Engine
+              {/* Main hero content */}
+              <div className="text-center flex flex-col items-center relative z-10 w-full max-w-4xl px-4">
+                <div className="inline-flex items-center gap-2.5 border rounded-full px-4 py-1.5 text-[11px] font-bold mb-6 bg-cyan-950/40 border-cyan-500/25 text-cyan-300 tracking-wider">
+                  <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse"/>
+                  Powered by AI · IdeaVault 2.0
                 </div>
-                <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black tracking-tighter leading-[1.05] mb-8 text-white">
-                  Validate Your Startup Idea <br/>
-                  <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent filter drop-shadow-[0_0_30px_rgba(168,85,247,0.3)]">in Seconds</span>
+                <h1 className="text-5xl md:text-7xl xl:text-[6rem] font-black tracking-tighter leading-[0.95] mb-6 text-white">
+                  Validate Your<br/>
+                  <span className="bg-gradient-to-r from-cyan-400 via-violet-400 to-purple-500 bg-clip-text text-transparent">Startup Idea</span>
+                  <br/>in Seconds.
                 </h1>
-                <p className="text-lg md:text-xl max-w-2xl mx-auto leading-relaxed text-zinc-400 mb-10">
-                  AI-powered insights, deep market analysis, and predictive success scoring. Stop guessing and start validating with data.
+                <p className="text-base md:text-lg max-w-xl mx-auto leading-relaxed text-zinc-400 mb-10">
+                  AI-powered market analysis, competitor insights, and a data-driven success score — built for founders who move fast.
                 </p>
-                <button onClick={()=>{if(!session){setShowAuth(true);return;}setEditingIdea(null);setShowForm(true);setFormError('');setFormSuccess(false);}}
-                  className="pointer-events-auto group relative inline-flex items-center justify-center px-8 py-4 font-bold text-white transition-all duration-200 bg-transparent rounded-2xl overflow-hidden active:scale-95">
-                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-purple-600 transition-all duration-200 group-hover:opacity-90"/>
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-20 bg-[radial-gradient(circle_at_center,white_0%,transparent_100%)] transition-opacity duration-200"/>
-                  <span className="relative flex items-center gap-2"><Ic.Check/> Analyze Idea</span>
-                </button>
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <button onClick={()=>{if(!session){setShowAuth(true);return;}setEditingIdea(null);setShowForm(true);setFormError('');setFormSuccess(false);}}
+                    className="pointer-events-auto group relative inline-flex items-center justify-center gap-2 px-8 py-4 font-bold text-white rounded-2xl overflow-hidden active:scale-95 text-[15px] shadow-[0_0_40px_rgba(6,182,212,0.25)] transition-transform">
+                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600"/>
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 transition-opacity duration-300"/>
+                    <span className="relative">🚀 Analyze My Idea</span>
+                  </button>
+                  <button onClick={()=>window.scrollBy({top: window.innerHeight, behavior:'smooth'})}
+                    className="pointer-events-auto flex items-center gap-2 text-zinc-500 hover:text-zinc-300 text-sm font-semibold transition-colors">
+                    See how it works <span className="text-lg">↓</span>
+                  </button>
+                </div>
+                {/* Social proof strip */}
+                <div className="flex items-center gap-6 mt-10 flex-wrap justify-center">
+                  {[{v:'10k+',l:'Ideas Analyzed'},{v:'85%',l:'Accuracy'},{v:'3x',l:'Faster Decisions'}].map((s,i)=>(
+                    <div key={i} className="flex flex-col items-center">
+                      <span className="text-xl font-black text-white">{s.v}</span>
+                      <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">{s.l}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </motion.div>
 
-            {/* STAGE 2: How It Works */}
-            <motion.div style={{ opacity: t2Opacity, zIndex: 2, pointerEvents: 'none' }} className="absolute text-center flex flex-col items-center w-full max-w-6xl px-4">
-              <motion.h2 style={{ y: t2TitleY }} className="text-4xl md:text-5xl font-black text-white mb-16 tracking-tight">How It Works</motion.h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 w-full">
+            {/* ── STAGE 2: How It Works ── */}
+            <motion.div style={{ opacity: t2Opacity, zIndex: 2, pointerEvents: 'none' }} className="absolute inset-0 flex flex-col items-center justify-center w-full px-4 md:px-12">
+              <motion.div style={{ y: t2TitleY }} className="text-center mb-12">
+                <p className="text-xs font-bold text-cyan-400 uppercase tracking-[0.3em] mb-3">Simple Process</p>
+                <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter">How It Works</h2>
+              </motion.div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-5xl">
                 {[
-                  {n:'01', t:'Enter Idea', d:'Describe your concept and target audience.', x:t2c1X, y:t2c1Y},
-                  {n:'02', t:'AI Analyzes', d:'Our models process live market trends.', x:t2c2X, y:t2c2Y},
-                  {n:'03', t:'Get Score', d:'Receive a comprehensive validation metric.', x:t2c3X, y:t2c3Y},
-                  {n:'04', t:'Improve', d:'Pivot based on data-driven suggestions.', x:t2c4X, y:t2c4Y}
+                  {n:'01', icon:'💡', t:'Enter Idea', d:'Describe your concept, audience, and market.', x:t2c1X, y:t2c1Y, c:'from-cyan-500/20 to-cyan-500/0'},
+                  {n:'02', icon:'🤖', t:'AI Analyzes', d:'Models process trends, competitors, and signals.', x:t2c2X, y:t2c2Y, c:'from-blue-500/20 to-blue-500/0'},
+                  {n:'03', icon:'📊', t:'Get Score', d:'Receive a 1-100 validation score with breakdown.', x:t2c3X, y:t2c3Y, c:'from-violet-500/20 to-violet-500/0'},
+                  {n:'04', icon:'📈', t:'Improve', d:'Act on data-driven pivots and suggestions.', x:t2c4X, y:t2c4Y, c:'from-purple-500/20 to-purple-500/0'},
                 ].map((s,i)=>(
-                  <motion.div key={i} style={{ x: s.x, y: s.y }} className="bg-black/50 border border-white/10 rounded-3xl p-6 text-left backdrop-blur-xl relative overflow-hidden group shadow-2xl">
-                    <div className="absolute top-0 right-0 p-6 text-5xl font-black text-white/5 group-hover:text-cyan-500/10 transition-colors">{s.n}</div>
-                    <h3 className="text-xl font-bold text-white mb-3 relative z-10">{s.t}</h3>
-                    <p className="text-sm text-zinc-400 relative z-10">{s.d}</p>
-                    <div className="absolute bottom-0 left-0 h-1 w-0 bg-gradient-to-r from-cyan-500 to-purple-500 transition-all duration-500 group-hover:w-full"/>
+                  <motion.div key={i} style={{ x: s.x, y: s.y }} className="relative bg-black/60 border border-white/8 rounded-3xl p-6 text-left backdrop-blur-2xl shadow-2xl overflow-hidden">
+                    <div className={`absolute inset-0 bg-gradient-to-b ${s.c} opacity-40`}/>
+                    <div className="relative z-10">
+                      <div className="text-3xl mb-4">{s.icon}</div>
+                      <div className="text-[10px] font-black text-zinc-600 uppercase tracking-widest mb-1">{s.n}</div>
+                      <h3 className="text-lg font-black text-white mb-2">{s.t}</h3>
+                      <p className="text-sm text-zinc-500 leading-relaxed">{s.d}</p>
+                    </div>
+                    <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"/>
                   </motion.div>
                 ))}
               </div>
             </motion.div>
 
-            {/* STAGE 3: Features */}
-            <motion.div style={{ opacity: t3Opacity, zIndex: 3, pointerEvents: 'none' }} className="absolute text-center flex flex-col items-center w-full max-w-5xl">
-              <motion.h2 style={{ y: t3TitleY }} className="text-4xl md:text-5xl font-black text-white mb-12 tracking-tight">Unfair Advantages</motion.h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+            {/* ── STAGE 3: Unfair Advantages ── */}
+            <motion.div style={{ opacity: t3Opacity, zIndex: 3, pointerEvents: 'none' }} className="absolute inset-0 flex flex-col items-center justify-center w-full px-4 md:px-12">
+              <motion.div style={{ y: t3TitleY }} className="text-center mb-10">
+                <p className="text-xs font-bold text-purple-400 uppercase tracking-[0.3em] mb-3">Why IdeaVault</p>
+                <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter">Unfair Advantages</h2>
+              </motion.div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-4xl">
                 {[
-                  {icon:'🧠', t:'Market Analysis', d:'Deep dive into your sector\'s TAM, SAM, and SOM using predictive AI modeling.', x:t3c1X, y:t3c1Y},
-                  {icon:'⚔️', t:'Competitor Insights', d:'Instantly map your idea against existing players and find the whitespace.', x:t3c2X, y:t3c2Y},
-                  {icon:'🎯', t:'AI Scoring System', d:'A proprietary 1-100 score analyzing feasibility, difficulty, and revenue potential.', x:t3c3X, y:t3c3Y},
-                  {icon:'📈', t:'Growth Suggestions', d:'Actionable steps to improve your pitch, business model, and launch strategy.', x:t3c4X, y:t3c4Y}
+                  {icon:'🧠', t:'Deep Market Analysis', d:"TAM, SAM & SOM mapped from live data — know your market before you enter.", x:t3c1X, y:t3c1Y, border:'border-cyan-500/20', glow:'shadow-[0_0_40px_rgba(6,182,212,0.07)]'},
+                  {icon:'⚔️', t:'Competitor Mapping', d:'Instantly spot gaps in the market and find your whitespace.', x:t3c2X, y:t3c2Y, border:'border-purple-500/20', glow:'shadow-[0_0_40px_rgba(168,85,247,0.07)]'},
+                  {icon:'🎯', t:'AI Scoring Engine', d:'A proprietary score analyzing feasibility, difficulty, and revenue potential.', x:t3c3X, y:t3c3Y, border:'border-violet-500/20', glow:'shadow-[0_0_40px_rgba(139,92,246,0.07)]'},
+                  {icon:'📈', t:'Growth Playbook', d:'Actionable next steps for your pitch, business model, and launch strategy.', x:t3c4X, y:t3c4Y, border:'border-indigo-500/20', glow:'shadow-[0_0_40px_rgba(99,102,241,0.07)]'},
                 ].map((s,i)=>(
-                  <motion.div key={i} style={{ x: s.x, y: s.y }} className="flex gap-5 bg-black/50 hover:bg-black/70 border border-white/10 hover:border-cyan-500/30 rounded-3xl p-6 text-left backdrop-blur-xl transition-all group pointer-events-auto cursor-default shadow-2xl">
-                    <div className="text-4xl filter drop-shadow-md group-hover:scale-110 transition-transform">{s.icon}</div>
+                  <motion.div key={i} style={{ x: s.x, y: s.y }} className={`flex gap-5 bg-black/60 border ${s.border} ${s.glow} rounded-3xl p-6 text-left backdrop-blur-2xl`}>
+                    <div className="text-3xl shrink-0 mt-0.5">{s.icon}</div>
                     <div>
-                      <h3 className="text-xl font-bold text-white mb-2">{s.t}</h3>
+                      <h3 className="text-lg font-black text-white mb-1.5">{s.t}</h3>
                       <p className="text-sm text-zinc-400 leading-relaxed">{s.d}</p>
                     </div>
                   </motion.div>
@@ -713,55 +751,66 @@ export default function App() {
               </div>
             </motion.div>
 
-            {/* STAGE 4: Live Dashboard Preview (3D Mock) */}
-            <motion.div style={{ opacity: t4Opacity, x: t4X, y: t4Y, rotateX: t4RotateX, rotateY: t4RotateY, zIndex: 4, pointerEvents: 'none' }} className="absolute flex items-center justify-center w-full max-w-5xl [transform-style:preserve-3d]">
-              <div className="w-full bg-[#0a0a0f] border border-white/10 rounded-[2rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-hidden">
-                {/* Mac Header Mock */}
-                <div className="bg-white/5 border-b border-white/10 px-6 py-4 flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500/80"/><div className="w-3 h-3 rounded-full bg-yellow-500/80"/><div className="w-3 h-3 rounded-full bg-green-500/80"/>
-                  <div className="mx-auto text-xs font-semibold text-zinc-500">Validation Dashboard</div>
+            {/* ── STAGE 4: Live Dashboard Preview ── */}
+            <motion.div style={{ opacity: t4Opacity, x: t4X, y: t4Y, rotateX: t4RotateX, rotateY: t4RotateY, zIndex: 4, pointerEvents: 'none' }} className="absolute inset-0 flex flex-col items-center justify-center w-full px-4 [transform-style:preserve-3d]">
+              <p className="text-xs font-bold text-cyan-400 uppercase tracking-[0.3em] mb-4">Live Preview</p>
+              <h2 className="text-3xl md:text-5xl font-black text-white mb-8 tracking-tighter">Your Dashboard Awaits</h2>
+              <div className="w-full max-w-4xl bg-[#0a0a12] border border-white/10 rounded-2xl shadow-[0_40px_120px_rgba(0,0,0,0.9)] overflow-hidden">
+                <div className="bg-white/[0.04] border-b border-white/8 px-5 py-3.5 flex items-center gap-3">
+                  <div className="flex gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-500/70"/><div className="w-2.5 h-2.5 rounded-full bg-yellow-500/70"/><div className="w-2.5 h-2.5 rounded-full bg-green-500/70"/></div>
+                  <div className="mx-auto text-[11px] font-semibold text-zinc-600">IdeaVault Dashboard · Validation Report</div>
                 </div>
-                <div className="p-8 grid grid-cols-3 gap-6">
-                  <div className="col-span-2 space-y-6">
-                    <div className="h-10 w-3/4 bg-white/5 rounded-xl border border-white/5"/>
-                    <div className="h-40 w-full bg-gradient-to-t from-cyan-500/20 to-transparent border border-white/5 rounded-2xl flex items-end p-4">
-                       <svg className="w-full h-24 text-cyan-500" viewBox="0 0 100 30" preserveAspectRatio="none"><path d="M0,30 Q25,10 50,20 T100,5" fill="none" stroke="currentColor" strokeWidth="2"/></svg>
+                <div className="p-6 grid grid-cols-3 gap-4">
+                  <div className="col-span-2 space-y-4">
+                    <div className="flex gap-3">
+                      <div className="h-8 flex-1 bg-white/[0.04] rounded-lg border border-white/5"/>
+                      <div className="h-8 w-20 bg-cyan-500/20 rounded-lg border border-cyan-500/20"/>
+                    </div>
+                    <div className="h-36 w-full bg-gradient-to-t from-cyan-500/10 via-cyan-500/5 to-transparent border border-white/5 rounded-xl relative overflow-hidden">
+                      <svg className="absolute bottom-0 w-full h-24 text-cyan-500" viewBox="0 0 100 30" preserveAspectRatio="none"><defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="rgb(6,182,212)" stopOpacity="0.3"/><stop offset="100%" stopColor="rgb(6,182,212)" stopOpacity="0"/></linearGradient></defs><path d="M0,30 Q10,18 25,15 T50,10 T75,5 T100,2" fill="url(#lg)"/><path d="M0,30 Q10,18 25,15 T50,10 T75,5 T100,2" fill="none" stroke="rgb(6,182,212)" strokeWidth="1.5"/></svg>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      {['TAM: $4.2B','Competitors: 3','Difficulty: 3/5'].map((t,i)=><div key={i} className="h-12 bg-white/[0.03] border border-white/5 rounded-lg flex items-center justify-center text-[10px] text-zinc-500 font-semibold">{t}</div>)}
                     </div>
                   </div>
-                  <div className="col-span-1 space-y-6">
-                    <div className="bg-white/5 border border-purple-500/20 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 aspect-square">
-                      <div className="text-6xl font-black text-white filter drop-shadow-[0_0_15px_rgba(168,85,247,0.5)]">94</div>
-                      <div className="text-xs font-bold text-zinc-400 uppercase tracking-widest">AI Score</div>
+                  <div className="col-span-1 space-y-4">
+                    <div className="bg-gradient-to-br from-purple-500/10 to-cyan-500/10 border border-purple-500/20 rounded-xl p-4 flex flex-col items-center justify-center gap-1 aspect-square">
+                      <div className="text-5xl font-black text-white" style={{filter:'drop-shadow(0 0 15px rgba(168,85,247,0.6))'}}>94</div>
+                      <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">AI Score</div>
+                      <div className="text-[10px] text-emerald-400 font-bold">Excellent ✓</div>
                     </div>
-                    <div className="h-20 w-full bg-white/5 rounded-xl border border-white/5"/>
+                    <div className="space-y-2">
+                      {['Market Fit','Revenue Model','Scalability'].map((l,i)=><div key={i} className="flex items-center gap-2"><div className="text-[10px] text-zinc-600 w-20 shrink-0">{l}</div><div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden"><div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-purple-500" style={{width:`${[88,72,95][i]}%`}}/></div></div>)}
+                    </div>
                   </div>
                 </div>
               </div>
             </motion.div>
 
-            {/* STAGE 5: Metrics & Final CTA */}
-            <motion.div style={{ opacity: t5Opacity, y: t5Y, zIndex: 5, pointerEvents: 'auto' }} className="absolute text-center flex flex-col items-center w-full max-w-4xl">
-              <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-tight mb-16 text-white filter drop-shadow-lg">
-                Stop Guessing. <br/><span className="text-cyan-400 filter drop-shadow-[0_0_20px_rgba(6,182,212,0.4)]">Start Validating.</span>
+            {/* ── STAGE 5: Final CTA ── */}
+            <motion.div style={{ opacity: t5Opacity, y: t5Y, zIndex: 5, pointerEvents: 'auto' }} className="absolute inset-0 flex flex-col items-center justify-center w-full px-4">
+              <p className="text-xs font-bold text-cyan-400 uppercase tracking-[0.3em] mb-6">Ready to Validate?</p>
+              <h1 className="text-5xl md:text-7xl xl:text-8xl font-black tracking-tighter leading-[0.9] text-center text-white mb-6">
+                Stop Guessing.<br/>
+                <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-500 bg-clip-text text-transparent">Start Winning.</span>
               </h1>
-              
-              <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8 w-full mb-16">
-                {[
-                  {val:'85%', label:'Prediction Accuracy'},
-                  {val:'3x', label:'Faster Validation'},
-                  {val:'10k+', label:'Ideas Analyzed'},
-                ].map((s,i)=>(
-                  <div key={i} className="text-center px-6 py-6 rounded-3xl border flex-1 min-w-[200px] bg-black/50 border-white/10 backdrop-blur-xl shadow-2xl hover:bg-black/70 transition-colors">
-                    <div className="text-4xl md:text-6xl font-black text-white mb-2 filter drop-shadow-md">{s.val}</div>
-                    <div className="text-sm font-bold uppercase tracking-widest text-zinc-400">{s.label}</div>
+              <p className="text-base md:text-lg text-zinc-400 mb-12 max-w-lg text-center leading-relaxed">
+                Join thousands of founders using data — not intuition — to build the next big thing.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-4 mb-14">
+                {[{v:'85%',l:'Prediction Accuracy'},{v:'3x',l:'Faster Validation'},{v:'10k+',l:'Ideas Analyzed'}].map((s,i)=>(
+                  <div key={i} className="flex flex-col items-center px-6 py-5 rounded-2xl border border-white/8 bg-white/[0.03] backdrop-blur-xl min-w-[140px]">
+                    <span className="text-4xl font-black text-white">{s.v}</span>
+                    <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold mt-1">{s.l}</span>
                   </div>
                 ))}
               </div>
-
-              <button onClick={()=>{setShowForm(true);setFormError('');setFormSuccess(false);}}
-                className="pointer-events-auto group relative inline-flex items-center justify-center px-10 py-5 font-bold text-white transition-all duration-200 bg-transparent rounded-2xl overflow-hidden active:scale-95 text-lg shadow-[0_0_40px_rgba(6,182,212,0.2)]">
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 transition-all duration-300 group-hover:scale-105"/>
-                <span className="relative flex items-center gap-3">Start Validating Your Idea Today <Ic.External/></span>
+              <button onClick={()=>{if(!session){setShowAuth(true);return;}setEditingIdea(null);setShowForm(true);setFormError('');setFormSuccess(false);}}
+                className="group relative inline-flex items-center justify-center gap-3 px-10 py-5 font-bold text-white rounded-2xl overflow-hidden active:scale-95 text-lg shadow-[0_0_60px_rgba(6,182,212,0.2)] transition-transform">
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 transition-opacity"/>
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 transition-opacity duration-300"/>
+                <span className="relative">🚀 Validate My Idea Now</span>
+                <Ic.External/>
               </button>
             </motion.div>
 
