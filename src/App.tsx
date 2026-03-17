@@ -481,7 +481,12 @@ export default function App() {
           </div>
         )}
         <div className={`flex items-center justify-between border-t pt-3 mt-auto ${T.div}`}>
-          <span className={`text-[11px] ${T.muted}`}>{new Date(idea.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+          <div className="flex flex-col gap-0.5">
+            <span className={`text-[11px] ${T.muted}`}>Created: {new Date(idea.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric', year:'numeric'})}</span>
+            {expanded && idea.updated_at && idea.updated_at !== idea.created_at && (
+              <span className={`text-[9px] ${T.muted} opacity-70`}>Updated: {new Date(idea.updated_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+            )}
+          </div>
           <div className="flex gap-1.5" onClick={e=>e.stopPropagation()}>
             <button onClick={e=>copyLink(idea,e)} className={`flex items-center gap-1 border text-[11px] font-semibold px-2.5 py-1.5 rounded-lg transition-all ${copiedId===idea.id?'bg-emerald-500/10 border-emerald-500/30 text-emerald-400':T.upvote}`}>
               {copiedId===idea.id?<><Ic.Check/>Copied</>:<><Ic.Copy/>Share</>}
